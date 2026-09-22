@@ -1,0 +1,35 @@
+# ==============================================================================
+# BOUTIQUE DESIGN INDONESIA - ROOT SECURITY & ROUTING CONFIGURATION
+# ==============================================================================
+
+# Disable directory browsing
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+# Block sensitive and configuration files from direct access
+<FilesMatch "^\.(env|git|svn|hg|styleci|editorconfig)|composer\.(json|lock)|package\.(json|lock)|phpunit\.xml|webpack\.mix\.js|artisan|\.(sql|bak|conf|log|ini|sh|bat)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Route requests to public directory if docroot is root
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Block access to hidden files and folders (.env, .git, etc.)
+    RewriteRule (^|/)\.(?!well-known) - [F]
+
+    # Block access to storage logs and databases
+    RewriteRule ^storage/logs/.*$ - [F,L]
+    RewriteRule ^database/.*$ - [F,L]
+
+    # Forward all traffic to the /public directory
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
