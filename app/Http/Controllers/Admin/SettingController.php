@@ -221,4 +221,63 @@ class SettingController extends Controller
 
         return back()->with('philosophy_success', 'Gambar filosofi berhasil dihapus, tampilan kembali menggunakan diagram standar.');
     }
+
+    /**
+     * Fix upload and storage directory permissions directly from the admin dashboard.
+     */
+    public function fixPermissions()
+    {
+        $dirs = [
+            public_path('uploads'),
+            public_path('uploads/team'),
+            public_path('uploads/philosophy'),
+            public_path('uploads/portfolio'),
+            public_path('uploads/clients'),
+            public_path('uploads/clients/products'),
+            storage_path(),
+            storage_path('app'),
+            storage_path('framework'),
+            storage_path('framework/cache'),
+            storage_path('framework/sessions'),
+            storage_path('framework/views'),
+            storage_path('logs'),
+            base_path('bootstrap/cache'),
+        ];
+
+        foreach ($dirs as $d) {
+            if (!\Illuminate\Support\Facades\File::exists($d)) {
+                try {
+                    \Illuminate\Support\Facades\File::makeDirectory($d, 0777, true, true);
+                } catch (\Throwable $e) {}
+            }
+            @chmod($d, 0777);
+
+            if (\Illuminate\Support\Facades\File::isDirectory($d)) {
+                foreach (\Illuminate\Support\Facades\File::allFiles($d) as $file) {
+                    @chmod($file->getPathname(), 0666);
+                }
+            }
+        }
+
+        // Try shell_exec if available on Linux
+        if (function_exists('shell_exec') && strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+            @shell_exec('chmod -R 777 ' . escapeshellarg(public_path('uploads')));
+            @shell_exec('chmod -R 777 ' . escapeshellarg(storage_path()));
+            @shell_exec('chmod -R 777 ' . escapeshellarg(base_path('bootstrap/cache')));
+        }
+
+        // Re-check
+        $stillFailed = [];
+        foreach ($dirs as $d) {
+            if (!is_writable($d)) {
+                $stillFailed[] = str_replace(base_path(), '', $d);
+            }
+        }
+
+        if (empty($stillFailed)) {
+            return back()->with('success', 'Semua folder upload (team, clients, philosophy, portfolio) berhasil diperbaiki dan siap digunakan (Writable)!');
+        } else {
+            return back()->with('error', 'Sebagian folder belum bisa ditulis otomatis oleh web server: ' . implode(', ', $stillFailed) . '. Harap jalankan perintah di terminal server: sudo chmod -R 775 /var/www/Boutique-profile/public/uploads');
+        }
+    }
 }

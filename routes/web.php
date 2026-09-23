@@ -85,6 +85,7 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     Route::post('/settings/logo', [SettingController::class, 'uploadLogo'])->name('settings.logo');
     Route::post('/settings/philosophy-image', [SettingController::class, 'uploadPhilosophyImage'])->name('settings.philosophy_image');
     Route::post('/settings/philosophy-image/delete', [SettingController::class, 'deletePhilosophyImage'])->name('settings.philosophy_image.delete');
+    Route::post('/settings/fix-permissions', [SettingController::class, 'fixPermissions'])->name('settings.fix_permissions');
 
 
     // Inbox Messages

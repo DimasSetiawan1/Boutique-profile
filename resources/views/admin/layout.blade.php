@@ -401,6 +401,21 @@
 
         <!-- Content Body -->
         <main class="content-body">
+            @if(!is_writable(public_path('uploads')))
+                <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between p-3 mb-4 rounded-3 border-0 shadow-sm" role="alert" style="background: rgba(245, 158, 11, 0.15); color: #b45309;">
+                    <div class="d-flex align-items-center mb-2 mb-md-0 me-3">
+                        <i class="bi bi-shield-exclamation me-2 fs-5 text-warning"></i>
+                        <span><strong>Peringatan Izin Folder Server:</strong> Folder <code>public/uploads</code> tidak dapat ditulis oleh web server. Upload foto tim, clients, dan filosofi akan gagal sebelum izin folder dibuka.</span>
+                    </div>
+                    <form action="{{ route('admin.settings.fix_permissions') }}" method="POST" class="m-0">
+                        @csrf
+                        <button type="submit" class="btn btn-warning btn-sm text-dark fw-bold rounded-pill px-3 shadow-sm">
+                            <i class="bi bi-wrench me-1"></i> Perbaiki Izin Otomatis
+                        </button>
+                    </form>
+                </div>
+            @endif
+
             @if(session('success'))
                 <div class="alert alert-success alert-dismissible fade show border-0 rounded-3 p-3 mb-4" role="alert" style="background: rgba(76, 175, 80, 0.12); color: #2e7d32;">
                     <i class="bi bi-check-circle-fill me-2"></i>
