@@ -54,7 +54,13 @@
                 </div>
             @endif
 
-            
+            <input type="file" name="logo" class="form-control" accept="image/*">
+            <small class="text-muted d-block mt-1">Leave empty to keep current logo. Recommended format: PNG with transparent background. Max size 2MB.</small>
+            @error('logo') <small class="text-danger">{{ $message }}</small> @enderror
+
+            <input type="hidden" name="logo_width" value="{{ old('logo_width', $client->logo_width) }}">
+            <input type="hidden" name="logo_height" value="{{ old('logo_height', $client->logo_height) }}">
+        </div>
 
         <!-- Interactive logo resize script -->
 <script>
