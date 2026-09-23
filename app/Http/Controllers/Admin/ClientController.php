@@ -32,23 +32,50 @@ class ClientController extends Controller
         $data = $request->except(['product_images', 'products']);
 
         if ($request->hasFile('logo')) {
-            $file = $request->file('logo');
-            $ext = $file->extension() ?: 'png';
-            $filename = time() . '_' . \Illuminate\Support\Str::random(16) . '.' . $ext;
-            $file->move(public_path('uploads/clients'), $filename);
-            $data['logo'] = 'uploads/clients/' . $filename;
+            $destLogo = public_path('uploads/clients');
+            if (!File::exists($destLogo)) {
+                try {
+                    File::makeDirectory($destLogo, 0775, true, true);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not create directory uploads/clients: ' . $e->getMessage());
+                }
+            }
+
+            try {
+                $file = $request->file('logo');
+                $ext = $file->extension() ?: 'png';
+                $filename = time() . '_' . \Illuminate\Support\Str::random(16) . '.' . $ext;
+                $file->move($destLogo, $filename);
+                $data['logo'] = 'uploads/clients/' . $filename;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload client logo failed: ' . $e->getMessage());
+                return back()->withInput()->with('error', 'Gagal menyimpan logo klien (Permission Denied). Folder uploads/clients tidak memiliki izin tulis di server.');
+            }
         }
 
         $client = Client::create($data);
 
         if ($request->hasFile('product_images')) {
+            $destProducts = public_path('uploads/clients/products');
+            if (!File::exists($destProducts)) {
+                try {
+                    File::makeDirectory($destProducts, 0775, true, true);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not create directory uploads/clients/products: ' . $e->getMessage());
+                }
+            }
+
             foreach ($request->file('product_images') as $file) {
-                $ext = $file->extension() ?: 'jpg';
-                $filename = time() . '_' . \Illuminate\Support\Str::random(16) . '.' . $ext;
-                $file->move(public_path('uploads/clients/products'), $filename);
-                $client->productImages()->create([
-                    'image' => 'uploads/clients/products/' . $filename
-                ]);
+                try {
+                    $ext = $file->extension() ?: 'jpg';
+                    $filename = time() . '_' . \Illuminate\Support\Str::random(16) . '.' . $ext;
+                    $file->move($destProducts, $filename);
+                    $client->productImages()->create([
+                        'image' => 'uploads/clients/products/' . $filename
+                    ]);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Upload client product failed: ' . $e->getMessage());
+                }
             }
         }
 
@@ -73,26 +100,53 @@ class ClientController extends Controller
         if ($request->hasFile('logo')) {
             // Delete old image
             if ($client->logo && File::exists(public_path($client->logo))) {
-                File::delete(public_path($client->logo));
+                @unlink(public_path($client->logo));
             }
 
-            $file = $request->file('logo');
-            $ext = $file->extension() ?: 'png';
-            $filename = time() . '_' . \Illuminate\Support\Str::random(16) . '.' . $ext;
-            $file->move(public_path('uploads/clients'), $filename);
-            $data['logo'] = 'uploads/clients/' . $filename;
+            $destLogo = public_path('uploads/clients');
+            if (!File::exists($destLogo)) {
+                try {
+                    File::makeDirectory($destLogo, 0775, true, true);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not create directory uploads/clients: ' . $e->getMessage());
+                }
+            }
+
+            try {
+                $file = $request->file('logo');
+                $ext = $file->extension() ?: 'png';
+                $filename = time() . '_' . \Illuminate\Support\Str::random(16) . '.' . $ext;
+                $file->move($destLogo, $filename);
+                $data['logo'] = 'uploads/clients/' . $filename;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload client logo failed: ' . $e->getMessage());
+                return back()->withInput()->with('error', 'Gagal memperbarui logo klien (Permission Denied). Folder uploads/clients tidak memiliki izin tulis di server.');
+            }
         }
 
         $client->update($data);
 
         if ($request->hasFile('product_images')) {
+            $destProducts = public_path('uploads/clients/products');
+            if (!File::exists($destProducts)) {
+                try {
+                    File::makeDirectory($destProducts, 0775, true, true);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not create directory uploads/clients/products: ' . $e->getMessage());
+                }
+            }
+
             foreach ($request->file('product_images') as $file) {
-                $ext = $file->extension() ?: 'jpg';
-                $filename = time() . '_' . \Illuminate\Support\Str::random(16) . '.' . $ext;
-                $file->move(public_path('uploads/clients/products'), $filename);
-                $client->productImages()->create([
-                    'image' => 'uploads/clients/products/' . $filename
-                ]);
+                try {
+                    $ext = $file->extension() ?: 'jpg';
+                    $filename = time() . '_' . \Illuminate\Support\Str::random(16) . '.' . $ext;
+                    $file->move($destProducts, $filename);
+                    $client->productImages()->create([
+                        'image' => 'uploads/clients/products/' . $filename
+                    ]);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Upload client product failed: ' . $e->getMessage());
+                }
             }
         }
 

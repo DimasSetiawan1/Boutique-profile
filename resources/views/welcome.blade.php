@@ -1301,9 +1301,21 @@
                 <h2 class="section-title"><span class="first-letter">{{ app()->getLocale() === 'en' ? 'W' : 'S' }}</span>{{ app()->getLocale() === 'en' ? 'ho We Are' : 'iapa Kami' }}</h2>
             </div>
 
+            @php
+                $leaders = $team->filter(function($m) {
+                    return in_array(strtolower(trim($m->role_en ?? '')), ['director', 'creative director']) 
+                        || in_array(strtolower(trim($m->role_id ?? '')), ['direktur', 'direktur kreatif'])
+                        || (int)$m->priority <= 2;
+                });
+                $leaderIds = $leaders->pluck('id')->toArray();
+                $otherMembers = $team->reject(function($m) use ($leaderIds) {
+                    return in_array($m->id, $leaderIds);
+                });
+            @endphp
+
             <!-- Founders Spotlight (Director & Creative Director) -->
             <div class="row g-4 mb-5 justify-content-center">
-                @foreach($team->whereIn('role', ['Director', 'Creative Director']) as $leader)
+                @foreach($leaders as $leader)
                     <div class="col-lg-6">
                         <div class="leader-card">
                             <div class="row align-items-center">
@@ -1337,7 +1349,7 @@
 
             <!-- Team Grid -->
             <div class="row g-4 justify-content-center">
-                @foreach($team->whereNotIn('role', ['Director', 'Creative Director']) as $member)
+                @foreach($otherMembers as $member)
                     <div class="col-sm-6 col-md-4 col-lg-3">
                         <div class="team-card">
                             <div class="team-avatar-wrapper">

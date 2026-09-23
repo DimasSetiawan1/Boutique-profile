@@ -156,11 +156,19 @@ class SettingController extends Controller
         // Save as PNG to public/uploads/logo.png
         $destDir = public_path('uploads');
         if (!file_exists($destDir)) {
-            mkdir($destDir, 0755, true);
+            @mkdir($destDir, 0775, true);
         }
-        imagepng($out, $destDir . DIRECTORY_SEPARATOR . 'logo.png');
-        imagedestroy($src);
-        imagedestroy($out);
+
+        try {
+            imagepng($out, $destDir . DIRECTORY_SEPARATOR . 'logo.png');
+            imagedestroy($src);
+            imagedestroy($out);
+        } catch (\Throwable $e) {
+            imagedestroy($src);
+            imagedestroy($out);
+            \Illuminate\Support\Facades\Log::error('Upload logo failed: ' . $e->getMessage());
+            return back()->with('logo_error', 'Gagal menyimpan file logo (Permission Denied). Folder uploads tidak memiliki izin tulis di server.');
+        }
 
         return back()->with('logo_success', 'Logo berhasil diperbarui!');
     }
@@ -177,12 +185,17 @@ class SettingController extends Controller
         $file = $request->file('philosophy_image');
         $destDir = public_path('uploads');
         if (!file_exists($destDir)) {
-            mkdir($destDir, 0755, true);
+            @mkdir($destDir, 0775, true);
         }
 
         // Generate clean unique filename
         $filename = 'philosophy_' . time() . '.' . $file->getClientOriginalExtension();
-        $file->move($destDir, $filename);
+        try {
+            $file->move($destDir, $filename);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Upload philosophy image setting failed: ' . $e->getMessage());
+            return back()->with('philosophy_error', 'Gagal mengupload gambar filosofi (Permission Denied). Folder uploads tidak memiliki izin tulis di server.');
+        }
 
         // Delete old image if exists
         $oldSetting = Setting::where('key', 'philosophy_image')->first();

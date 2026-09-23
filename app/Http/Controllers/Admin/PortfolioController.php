@@ -47,9 +47,23 @@ class PortfolioController extends Controller
         $validated['category_id'] = $validated['title_id'];
 
         if ($request->hasFile('image')) {
-            $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
-            $request->image->move(public_path('uploads/portfolio'), $imageName);
-            $validated['image_path'] = 'uploads/portfolio/' . $imageName;
+            $destDir = public_path('uploads/portfolio');
+            if (!File::exists($destDir)) {
+                try {
+                    File::makeDirectory($destDir, 0775, true, true);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not create directory uploads/portfolio: ' . $e->getMessage());
+                }
+            }
+
+            try {
+                $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
+                $request->image->move($destDir, $imageName);
+                $validated['image_path'] = 'uploads/portfolio/' . $imageName;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload portfolio image failed: ' . $e->getMessage());
+                return back()->withInput()->with('error', 'Gagal menyimpan gambar portofolio (Permission Denied). Folder uploads/portfolio tidak memiliki izin tulis di server.');
+            }
         }
 
         Portfolio::create($validated);
@@ -88,12 +102,26 @@ class PortfolioController extends Controller
         if ($request->hasFile('image')) {
             // Delete old image if exists
             if ($portfolio->image_path && File::exists(public_path($portfolio->image_path))) {
-                File::delete(public_path($portfolio->image_path));
+                @unlink(public_path($portfolio->image_path));
             }
 
-            $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
-            $request->image->move(public_path('uploads/portfolio'), $imageName);
-            $validated['image_path'] = 'uploads/portfolio/' . $imageName;
+            $destDir = public_path('uploads/portfolio');
+            if (!File::exists($destDir)) {
+                try {
+                    File::makeDirectory($destDir, 0775, true, true);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not create directory uploads/portfolio: ' . $e->getMessage());
+                }
+            }
+
+            try {
+                $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
+                $request->image->move($destDir, $imageName);
+                $validated['image_path'] = 'uploads/portfolio/' . $imageName;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload portfolio image failed: ' . $e->getMessage());
+                return back()->withInput()->with('error', 'Gagal memperbarui gambar portofolio (Permission Denied). Folder uploads/portfolio tidak memiliki izin tulis di server.');
+            }
         }
 
         $portfolio->update($validated);

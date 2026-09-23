@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\TeamMember;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
+use App\Services\TranslationService;
 
 class TeamController extends Controller
 {
@@ -24,7 +26,7 @@ class TeamController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'role_en' => 'required|string|max:255',
+            'role_en' => 'nullable|string|max:255',
             'role_id' => 'required|string|max:255',
             'phone' => 'nullable|string|max:100',
             'quote_en' => 'nullable|string',
@@ -35,10 +37,35 @@ class TeamController extends Controller
             'priority' => 'required|integer',
         ]);
 
+        // Auto-translate if English fields are empty
+        if (empty($validated['role_en']) && !empty($validated['role_id'])) {
+            $validated['role_en'] = TranslationService::translate($validated['role_id']);
+        }
+        if (empty($validated['quote_en']) && !empty($validated['quote_id'])) {
+            $validated['quote_en'] = TranslationService::translate($validated['quote_id']);
+        }
+        if (empty($validated['description_en']) && !empty($validated['description_id'])) {
+            $validated['description_en'] = TranslationService::translate($validated['description_id']);
+        }
+
         if ($request->hasFile('image')) {
-            $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
-            $request->image->move(public_path('uploads/team'), $imageName);
-            $validated['photo_path'] = 'uploads/team/' . $imageName;
+            $destDir = public_path('uploads/team');
+            if (!File::exists($destDir)) {
+                try {
+                    File::makeDirectory($destDir, 0775, true, true);
+                } catch (\Throwable $e) {
+                    Log::warning('Could not create directory uploads/team: ' . $e->getMessage());
+                }
+            }
+
+            try {
+                $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
+                $request->image->move($destDir, $imageName);
+                $validated['photo_path'] = 'uploads/team/' . $imageName;
+            } catch (\Throwable $e) {
+                Log::error('Upload team image failed: ' . $e->getMessage());
+                return back()->withInput()->with('error', 'Gagal menyimpan foto tim (Permission Denied). Folder uploads/team tidak dapat ditulis oleh web server di server Linux. Mohon periksa hak akses folder di server.');
+            }
         }
 
         TeamMember::create($validated);
@@ -56,7 +83,7 @@ class TeamController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'role_en' => 'required|string|max:255',
+            'role_en' => 'nullable|string|max:255',
             'role_id' => 'required|string|max:255',
             'phone' => 'nullable|string|max:100',
             'quote_en' => 'nullable|string',
@@ -67,15 +94,39 @@ class TeamController extends Controller
             'priority' => 'required|integer',
         ]);
 
+        if (empty($validated['role_en']) && !empty($validated['role_id'])) {
+            $validated['role_en'] = TranslationService::translate($validated['role_id']);
+        }
+        if (empty($validated['quote_en']) && !empty($validated['quote_id'])) {
+            $validated['quote_en'] = TranslationService::translate($validated['quote_id']);
+        }
+        if (empty($validated['description_en']) && !empty($validated['description_id'])) {
+            $validated['description_en'] = TranslationService::translate($validated['description_id']);
+        }
+
         if ($request->hasFile('image')) {
             // Delete old photo if exists
             if ($team->photo_path && File::exists(public_path($team->photo_path))) {
-                File::delete(public_path($team->photo_path));
+                @unlink(public_path($team->photo_path));
             }
 
-            $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
-            $request->image->move(public_path('uploads/team'), $imageName);
-            $validated['photo_path'] = 'uploads/team/' . $imageName;
+            $destDir = public_path('uploads/team');
+            if (!File::exists($destDir)) {
+                try {
+                    File::makeDirectory($destDir, 0775, true, true);
+                } catch (\Throwable $e) {
+                    Log::warning('Could not create directory uploads/team: ' . $e->getMessage());
+                }
+            }
+
+            try {
+                $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
+                $request->image->move($destDir, $imageName);
+                $validated['photo_path'] = 'uploads/team/' . $imageName;
+            } catch (\Throwable $e) {
+                Log::error('Upload team image failed: ' . $e->getMessage());
+                return back()->withInput()->with('error', 'Gagal memperbarui foto tim (Permission Denied). Folder uploads/team tidak dapat ditulis oleh web server di server Linux. Mohon periksa hak akses folder di server.');
+            }
         }
 
         $team->update($validated);
@@ -87,7 +138,7 @@ class TeamController extends Controller
     {
         // Delete photo if exists
         if ($team->photo_path && File::exists(public_path($team->photo_path))) {
-            File::delete(public_path($team->photo_path));
+            @unlink(public_path($team->photo_path));
         }
 
         $team->delete();

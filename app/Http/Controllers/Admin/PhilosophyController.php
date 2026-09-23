@@ -54,11 +54,21 @@ class PhilosophyController extends Controller
         if ($request->hasFile('image')) {
             $dest = public_path('uploads/philosophy');
             if (!File::exists($dest)) {
-                File::makeDirectory($dest, 0755, true);
+                try {
+                    File::makeDirectory($dest, 0775, true, true);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not create directory uploads/philosophy: ' . $e->getMessage());
+                }
             }
-            $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
-            $request->image->move($dest, $imageName);
-            $validated['image_path'] = 'uploads/philosophy/' . $imageName;
+
+            try {
+                $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
+                $request->image->move($dest, $imageName);
+                $validated['image_path'] = 'uploads/philosophy/' . $imageName;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload philosophy image failed: ' . $e->getMessage());
+                return back()->withInput()->with('error', 'Gagal menyimpan gambar filosofi (Permission Denied). Folder uploads/philosophy tidak memiliki izin tulis di server.');
+            }
         }
 
         Philosophy::create($validated);
@@ -103,16 +113,25 @@ class PhilosophyController extends Controller
         if ($request->hasFile('image')) {
             $dest = public_path('uploads/philosophy');
             if (!File::exists($dest)) {
-                File::makeDirectory($dest, 0755, true);
+                try {
+                    File::makeDirectory($dest, 0775, true, true);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not create directory uploads/philosophy: ' . $e->getMessage());
+                }
             }
 
             if ($philosophy->image_path && File::exists(public_path($philosophy->image_path))) {
-                File::delete(public_path($philosophy->image_path));
+                @unlink(public_path($philosophy->image_path));
             }
 
-            $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
-            $request->image->move($dest, $imageName);
-            $validated['image_path'] = 'uploads/philosophy/' . $imageName;
+            try {
+                $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
+                $request->image->move($dest, $imageName);
+                $validated['image_path'] = 'uploads/philosophy/' . $imageName;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload philosophy image failed: ' . $e->getMessage());
+                return back()->withInput()->with('error', 'Gagal memperbarui gambar filosofi (Permission Denied). Folder uploads/philosophy tidak memiliki izin tulis di server.');
+            }
         }
 
         $philosophy->update($validated);
