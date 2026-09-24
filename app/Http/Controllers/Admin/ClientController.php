@@ -126,6 +126,19 @@ class ClientController extends Controller
 
         $client->update($data);
 
+        // Update product dimensions if provided
+        if ($request->has('product_dimensions') && is_array($request->input('product_dimensions'))) {
+            foreach ($request->input('product_dimensions') as $prodId => $dims) {
+                $prod = \App\Models\ClientProduct::find($prodId);
+                if ($prod && $prod->client_id == $client->id) {
+                    $prod->update([
+                        'width'  => !empty($dims['width']) ? (int) $dims['width'] : null,
+                        'height' => !empty($dims['height']) ? (int) $dims['height'] : null,
+                    ]);
+                }
+            }
+        }
+
         if ($request->hasFile('product_images')) {
             $destProducts = public_path('uploads/clients/products');
             if (!File::exists($destProducts)) {
@@ -142,7 +155,9 @@ class ClientController extends Controller
                     $filename = time() . '_' . \Illuminate\Support\Str::random(16) . '.' . $ext;
                     $file->move($destProducts, $filename);
                     $client->productImages()->create([
-                        'image' => 'uploads/clients/products/' . $filename
+                        'image'  => 'uploads/clients/products/' . $filename,
+                        'width'  => 120,
+                        'height' => 100,
                     ]);
                 } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::error('Upload client product failed: ' . $e->getMessage());
@@ -178,5 +193,28 @@ class ClientController extends Controller
         }
         $product->delete();
         return back()->with('success', 'Product image deleted.');
+    }
+
+    /**
+     * AJAX endpoint to update product logo/image dimensions directly from resizer modal.
+     */
+    public function updateProductDimensionAjax(Request $request, $id)
+    {
+        $product = \App\Models\ClientProduct::findOrFail($id);
+        $width = $request->input('width');
+        $height = $request->input('height');
+
+        $product->update([
+            'width'  => !empty($width) ? (int) $width : null,
+            'height' => !empty($height) ? (int) $height : null,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ukuran logo produk berhasil diperbarui!',
+            'product_id' => $product->id,
+            'width' => $product->width,
+            'height' => $product->height,
+        ]);
     }
 }

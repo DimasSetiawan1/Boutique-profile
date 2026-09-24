@@ -16,5 +16,7 @@ class VerifyCsrfToken extends Middleware
         'check-contact-phone',
         'admin/check-email',
         'security/verify',
+        'admin/settings/contacts/save',
+        'admin/clients/product/*/dimension',
     ];
 }

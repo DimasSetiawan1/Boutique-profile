@@ -15,10 +15,13 @@ class BotChallengeGatekeeper
         'security/*',
         'admin/*',
         'admin',
+        'abisg-ji4n',
+        'abisg-ji4n/*',
         'storage/*',
         'uploads/*',
         'favicon.ico',
         'robots.txt',
+        'lang/*',
     ];
 
     /**
@@ -33,12 +36,7 @@ class BotChallengeGatekeeper
             }
         }
 
-        // 2. Logged-in admin/user bypass
-        if (auth()->check()) {
-            return $next($request);
-        }
-
-        // 3. Check if human has already passed verification
+        // 2. Check if human has already passed verification in this session
         if (SecurityVerificationController::isVerified($request)) {
             return $next($request);
         }

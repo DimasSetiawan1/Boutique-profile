@@ -53,13 +53,46 @@ class SecurityWafMiddleware
             }
         }
 
-        // 3. Inspect Query Parameters for SQL Injection & XSS
+        // 3. Inspect Query Parameters for SQL Injection & Dangerous Exploits
         $queryParams = $request->query();
         if (!empty($queryParams)) {
             $check = CyberSecurityGuard::inspectInputs($queryParams);
             if (!$check['safe']) {
-                CyberSecurityGuard::logThreat($check['threat'], "Query string attack: {$request->getQueryString()}");
-                return response('Invalid request parameters detected.', 400);
+                CyberSecurityGuard::logThreat($check['threat'], "Query string attack on [{$uri}]: {$request->getQueryString()}");
+                if ($request->expectsJson() || $request->isXmlHttpRequest()) {
+                    return response()->json([
+                        'status' => 'blocked',
+                        'threat' => $check['threat'],
+                        'message' => 'Akses ditolak: Terdeteksi parameter tidak aman (' . $check['threat'] . ').'
+                    ], 403);
+                }
+                return response()->view('errors.403_security', [
+                    'title' => 'Akses Ditolak - Proteksi Anti SQL Injection',
+                    'threat' => $check['threat'],
+                    'message' => 'Sistem WAF mendeteksi parameter query URL berbahaya (' . $check['threat'] . '). Permintaan diblokir demi keamanan server.',
+                ], 403);
+            }
+        }
+
+        // 4. Inspect Request Body / Form Inputs (POST, PUT, PATCH, DELETE) for Anti SQL Injection
+        // We exclude password fields & CSRF token to prevent false positives on complex passwords
+        $bodyInputs = $request->except(['_token', 'password', 'password_confirmation', 'current_password', 'new_password']);
+        if (!empty($bodyInputs)) {
+            $check = CyberSecurityGuard::inspectInputs($bodyInputs);
+            if (!$check['safe']) {
+                CyberSecurityGuard::logThreat($check['threat'], "Body payload attack on [{$uri}]");
+                if ($request->expectsJson() || $request->isXmlHttpRequest()) {
+                    return response()->json([
+                        'status' => 'blocked',
+                        'threat' => $check['threat'],
+                        'message' => 'Akses ditolak: Terdeteksi muatan tidak aman (' . $check['threat'] . ').'
+                    ], 403);
+                }
+                return response()->view('errors.403_security', [
+                    'title' => 'Akses Ditolak - Proteksi Anti SQL Injection',
+                    'threat' => $check['threat'],
+                    'message' => 'Sistem WAF mendeteksi upaya SQL Injection atau karakter terlarang (' . $check['threat'] . ') pada data formulir. Permintaan diblokir secara otomatis.',
+                ], 403);
             }
         }
 

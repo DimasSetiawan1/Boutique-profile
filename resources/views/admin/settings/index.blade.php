@@ -264,48 +264,83 @@
                 </div>
             </div>
 
-            <h5 class="fw-bold mb-3 pb-2 border-bottom text-danger" style="font-size: 1.1rem; color:var(--accent-red) !important;"><i class="bi bi-person-lines-fill me-1"></i> Direct Contacts (Contact Persons)</h5>
-            
-            <div class="row g-3 mb-4">
-                <!-- CP 1 -->
-                <div class="col-md-6">
-                    <label for="contact_person_1_name" class="form-label small fw-bold text-secondary">CP 1 Name</label>
-                    <input type="text" class="form-control" id="contact_person_1_name" name="contact_person_1_name" value="{{ old('contact_person_1_name', $settings['contact_person_1_name'] ?? '') }}">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div>
+                    <h5 class="fw-bold mb-1 text-danger" style="font-size: 1.15rem; color:var(--accent-red) !important;">
+                        <i class="bi bi-person-lines-fill me-2"></i> Direct Contacts (Contact Persons)
+                    </h5>
+                    <p class="text-muted small mb-0">Kelola daftar kontak person (CP) untuk konsultasi WhatsApp langsung di website. Anda dapat menambah, mengedit, atau menghapus kontak sesuai kebutuhan.</p>
                 </div>
-                <div class="col-md-6">
-                    <label for="contact_person_1_phone" class="form-label small fw-bold text-secondary">CP 1 Phone</label>
-                    <input type="text" class="form-control" id="contact_person_1_phone" name="contact_person_1_phone" value="{{ old('contact_person_1_phone', $settings['contact_person_1_phone'] ?? '') }}">
+                <div class="mt-2 mt-md-0 d-flex flex-wrap align-items-center gap-2">
+                    <span id="contacts-save-indicator" class="small text-success fw-bold d-none">
+                        <i class="bi bi-check-circle-fill me-1"></i> Tersimpan!
+                    </span>
+                    <button type="button" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm d-flex align-items-center gap-1" id="btnSaveContacts">
+                        <i class="bi bi-cloud-arrow-up-fill"></i>
+                        <span>Simpan Kontak</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm d-flex align-items-center gap-1" id="btnAddContact" style="background-color: var(--accent-red); border-color: var(--accent-red);">
+                        <i class="bi bi-plus-circle-fill"></i>
+                        <span>Tambah Kontak</span>
+                    </button>
                 </div>
+            </div>
 
-                <!-- CP 2 -->
-                <div class="col-md-6">
-                    <label for="contact_person_2_name" class="form-label small fw-bold text-secondary">CP 2 Name</label>
-                    <input type="text" class="form-control" id="contact_person_2_name" name="contact_person_2_name" value="{{ old('contact_person_2_name', $settings['contact_person_2_name'] ?? '') }}">
-                </div>
-                <div class="col-md-6">
-                    <label for="contact_person_2_phone" class="form-label small fw-bold text-secondary">CP 2 Phone</label>
-                    <input type="text" class="form-control" id="contact_person_2_phone" name="contact_person_2_phone" value="{{ old('contact_person_2_phone', $settings['contact_person_2_phone'] ?? '') }}">
-                </div>
+            @php
+                $rawJson = $settings['direct_contacts'] ?? null;
+                $existingContacts = ($rawJson !== null) ? json_decode($rawJson, true) : null;
+                if (!is_array($existingContacts)) {
+                    $existingContacts = [];
+                    for ($i = 1; $i <= 4; $i++) {
+                        $n = trim((string)($settings["contact_person_{$i}_name"] ?? ''));
+                        $p = trim((string)($settings["contact_person_{$i}_phone"] ?? ''));
+                        if (!empty($n) || !empty($p)) {
+                            $existingContacts[] = ['name' => $n, 'phone' => $p];
+                        }
+                    }
+                }
+            @endphp
 
-                <!-- CP 3 -->
-                <div class="col-md-6">
-                    <label for="contact_person_3_name" class="form-label small fw-bold text-secondary">CP 3 Name</label>
-                    <input type="text" class="form-control" id="contact_person_3_name" name="contact_person_3_name" value="{{ old('contact_person_3_name', $settings['contact_person_3_name'] ?? '') }}">
-                </div>
-                <div class="col-md-6">
-                    <label for="contact_person_3_phone" class="form-label small fw-bold text-secondary">CP 3 Phone</label>
-                    <input type="text" class="form-control" id="contact_person_3_phone" name="contact_person_3_phone" value="{{ old('contact_person_3_phone', $settings['contact_person_3_phone'] ?? '') }}">
-                </div>
+            <div id="contactsContainer" class="mb-4">
+                @foreach($existingContacts as $index => $cp)
+                    <div class="contact-card p-3 mb-3 border rounded-3 bg-white shadow-sm position-relative" data-index="{{ $index }}" style="border-left: 4px solid var(--accent-red) !important; transition: all 0.25s ease;">
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge rounded-pill px-2.5 py-1 contact-badge" style="background-color: var(--accent-red); font-size: 0.78rem;">
+                                    <i class="bi bi-person-badge me-1"></i> Kontak #{{ $loop->iteration }}
+                                </span>
+                                <span class="small fw-bold text-dark contact-preview-title">{{ $cp['name'] ?? 'Kontak Baru' }}</span>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1 btn-delete-contact" title="Hapus kontak ini">
+                                <i class="bi bi-trash3-fill me-1"></i> Hapus
+                            </button>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-secondary mb-1">Nama / Jabatan CP <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted"><i class="bi bi-person-fill text-danger"></i></span>
+                                    <input type="text" class="form-control input-cp-name" name="contact_persons[{{ $index }}][name]" value="{{ $cp['name'] ?? '' }}" placeholder="Contoh: (Direktur) Enung Kosasih" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-secondary mb-1">Nomor Telepon / WhatsApp <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-success"><i class="bi bi-whatsapp"></i></span>
+                                    <input type="text" class="form-control input-cp-phone" name="contact_persons[{{ $index }}][phone]" value="{{ $cp['phone'] ?? '' }}" placeholder="Contoh: 0856 9317 4242" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
 
-                <!-- CP 4 -->
-                <div class="col-md-6">
-                    <label for="contact_person_4_name" class="form-label small fw-bold text-secondary">CP 4 Name</label>
-                    <input type="text" class="form-control" id="contact_person_4_name" name="contact_person_4_name" value="{{ old('contact_person_4_name', $settings['contact_person_4_name'] ?? '') }}">
-                </div>
-                <div class="col-md-6">
-                    <label for="contact_person_4_phone" class="form-label small fw-bold text-secondary">CP 4 Phone</label>
-                    <input type="text" class="form-control" id="contact_person_4_phone" name="contact_person_4_phone" value="{{ old('contact_person_4_phone', $settings['contact_person_4_phone'] ?? '') }}">
-                </div>
+            <div id="emptyContactsAlert" class="alert alert-secondary text-center py-4 mb-4 {{ count($existingContacts) > 0 ? 'd-none' : '' }}" style="border-radius: 12px; border-style: dashed;">
+                <i class="bi bi-person-x fs-2 text-muted d-block mb-2"></i>
+                <p class="mb-2 fw-semibold text-secondary">Belum ada kontak person.</p>
+                <button type="button" class="btn btn-sm btn-danger rounded-pill px-4" onclick="document.getElementById('btnAddContact').click()" style="background-color: var(--accent-red); border-color: var(--accent-red);">
+                    <i class="bi bi-plus-circle me-1"></i> Tambah Kontak Sekarang
+                </button>
             </div>
 
             <div class="d-flex gap-3 pt-3 border-top">
@@ -415,5 +450,201 @@
             dz.style.borderColor = '#dee2e6';
             dz.style.background  = '';
         }
+
+        // ==========================================
+        // Direct Contacts Manager (Tambah, Edit, Hapus)
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', function () {
+            const container = document.getElementById('contactsContainer');
+            const btnAdd = document.getElementById('btnAddContact');
+            const emptyAlert = document.getElementById('emptyContactsAlert');
+
+            function updateContactNumbers() {
+                if (!container) return;
+                const cards = container.querySelectorAll('.contact-card');
+                if (cards.length === 0) {
+                    if (emptyAlert) emptyAlert.classList.remove('d-none');
+                } else {
+                    if (emptyAlert) emptyAlert.classList.add('d-none');
+                }
+
+                cards.forEach((card, index) => {
+                    const number = index + 1;
+                    const badge = card.querySelector('.contact-badge');
+                    if (badge) {
+                        badge.innerHTML = `<i class="bi bi-person-badge me-1"></i> Kontak #${number}`;
+                    }
+
+                    const nameInput = card.querySelector('.input-cp-name');
+                    if (nameInput) {
+                        nameInput.name = `contact_persons[${index}][name]`;
+                    }
+
+                    const phoneInput = card.querySelector('.input-cp-phone');
+                    if (phoneInput) {
+                        phoneInput.name = `contact_persons[${index}][phone]`;
+                    }
+                });
+            }
+
+            // AJAX sync helper: Simpan langsung ke database secara instan
+            function sendContactsToServer(showToast = true, toastMsg = 'Kontak berhasil disimpan!') {
+                const cards = container ? container.querySelectorAll('.contact-card') : [];
+                const contactsData = [];
+                cards.forEach(card => {
+                    const name = card.querySelector('.input-cp-name') ? card.querySelector('.input-cp-name').value.trim() : '';
+                    const phone = card.querySelector('.input-cp-phone') ? card.querySelector('.input-cp-phone').value.trim() : '';
+                    if (name || phone) {
+                        contactsData.push({ name: name, phone: phone });
+                    }
+                });
+
+                const token = document.querySelector('meta[name="csrf-token"]') 
+                           ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+                           : (document.querySelector('input[name="_token"]') ? document.querySelector('input[name="_token"]').value : '');
+
+                const indicator = document.getElementById('contacts-save-indicator');
+                if (indicator) {
+                    indicator.className = 'small text-primary fw-bold';
+                    indicator.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Menyimpan...';
+                    indicator.classList.remove('d-none');
+                }
+
+                return fetch('{{ route("admin.settings.contacts.save") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ contact_persons: contactsData })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (indicator) {
+                        indicator.className = 'small text-success fw-bold';
+                        indicator.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' + toastMsg;
+                        setTimeout(() => {
+                            indicator.classList.add('d-none');
+                        }, 4000);
+                    }
+                    return data;
+                })
+                .catch(err => {
+                    console.error('Save contacts error:', err);
+                    if (indicator) {
+                        indicator.className = 'small text-danger fw-bold';
+                        indicator.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> Gagal menyimpan otomatis';
+                    }
+                });
+            }
+
+            // Save button click
+            const btnSave = document.getElementById('btnSaveContacts');
+            if (btnSave) {
+                btnSave.addEventListener('click', function () {
+                    sendContactsToServer(true, 'Semua kontak berhasil disimpan!');
+                });
+            }
+
+            // Real-time title update as admin types
+            if (container) {
+                container.addEventListener('input', function (e) {
+                    if (e.target.classList.contains('input-cp-name')) {
+                        const card = e.target.closest('.contact-card');
+                        const titleEl = card.querySelector('.contact-preview-title');
+                        if (titleEl) {
+                            titleEl.textContent = e.target.value.trim() || 'Kontak Baru';
+                        }
+                    }
+                });
+
+                // Delete contact person (Instan terhapus & langsung tersimpan ke database!)
+                container.addEventListener('click', function (e) {
+                    const btnDelete = e.target.closest('.btn-delete-contact');
+                    if (btnDelete) {
+                        const card = btnDelete.closest('.contact-card');
+                        const nameInput = card.querySelector('.input-cp-name');
+                        const contactName = nameInput ? nameInput.value.trim() : '';
+                        const displayName = contactName ? `"${contactName}"` : 'kontak ini';
+
+                        const confirmCallback = () => {
+                            card.style.opacity = '0';
+                            card.style.transform = 'translateX(20px)';
+                            setTimeout(() => {
+                                card.remove();
+                                updateContactNumbers();
+                                sendContactsToServer(true, 'Kontak berhasil dihapus & tersimpan otomatis!');
+                            }, 200);
+                        };
+
+                        if (typeof window.systemConfirm === 'function') {
+                            window.systemConfirm(`Apakah Anda yakin ingin menghapus ${displayName}?`, confirmCallback, 'Hapus Kontak', 'Ya, Hapus');
+                        } else if (confirm(`Apakah Anda yakin ingin menghapus ${displayName}?`)) {
+                            confirmCallback();
+                        }
+                    }
+                });
+            }
+
+            // Add new contact person
+            if (btnAdd && container) {
+                btnAdd.addEventListener('click', function () {
+                    const currentCards = container.querySelectorAll('.contact-card');
+                    const newIndex = currentCards.length;
+                    const newNumber = newIndex + 1;
+
+                    const newCard = document.createElement('div');
+                    newCard.className = 'contact-card p-3 mb-3 border rounded-3 bg-white shadow-sm position-relative';
+                    newCard.style.borderLeft = '4px solid var(--accent-red) !important';
+                    newCard.style.opacity = '0';
+                    newCard.style.transform = 'translateY(15px)';
+                    newCard.style.transition = 'all 0.25s ease';
+
+                    newCard.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge rounded-pill px-2.5 py-1 contact-badge" style="background-color: var(--accent-red); font-size: 0.78rem;">
+                                    <i class="bi bi-person-badge me-1"></i> Kontak #${newNumber}
+                                </span>
+                                <span class="small fw-bold text-dark contact-preview-title">Kontak Baru</span>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1 btn-delete-contact" title="Hapus kontak ini">
+                                <i class="bi bi-trash3-fill me-1"></i> Hapus
+                            </button>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-secondary mb-1">Nama / Jabatan CP <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted"><i class="bi bi-person-fill text-danger"></i></span>
+                                    <input type="text" class="form-control input-cp-name" name="contact_persons[${newIndex}][name]" value="" placeholder="Contoh: (Direktur) Enung Kosasih" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-secondary mb-1">Nomor Telepon / WhatsApp <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-success"><i class="bi bi-whatsapp"></i></span>
+                                    <input type="text" class="form-control input-cp-phone" name="contact_persons[${newIndex}][phone]" value="" placeholder="Contoh: 0856 9317 4242" required>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    container.appendChild(newCard);
+                    if (emptyAlert) emptyAlert.classList.add('d-none');
+
+                    requestAnimationFrame(() => {
+                        newCard.style.opacity = '1';
+                        newCard.style.transform = 'translateY(0)';
+                    });
+
+                    const inputToFocus = newCard.querySelector('.input-cp-name');
+                    if (inputToFocus) {
+                        inputToFocus.focus();
+                    }
+                });
+            }
+        });
     </script>
 @endsection

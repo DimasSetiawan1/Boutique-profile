@@ -35,6 +35,9 @@ class SettingController extends Controller
             'slogan_philosophy_id'    => 'required|string',
             'philosophy_desc_en'      => 'nullable|string',
             'philosophy_desc_id'      => 'nullable|string',
+            'contact_persons'         => 'nullable|array',
+            'contact_persons.*.name'  => 'nullable|string|max:255',
+            'contact_persons.*.phone' => 'nullable|string|max:255',
             'contact_person_1_name'   => 'nullable|string|max:255',
             'contact_person_1_phone'  => 'nullable|string|max:255',
             'contact_person_2_name'   => 'nullable|string|max:255',
@@ -56,6 +59,50 @@ class SettingController extends Controller
         }
         if (empty($validated['philosophy_desc_en']) && !empty($validated['philosophy_desc_id'])) {
             $validated['philosophy_desc_en'] = TranslationService::translate($validated['philosophy_desc_id']);
+        }
+
+        // Process dynamic Direct Contacts (Tambah, Edit, Hapus)
+        $cleanContacts = [];
+        if ($request->has('contact_persons') && is_array($request->input('contact_persons'))) {
+            foreach ($request->input('contact_persons') as $cp) {
+                $name = trim((string) ($cp['name'] ?? ''));
+                $phone = trim((string) ($cp['phone'] ?? ''));
+                if (!empty($name) || !empty($phone)) {
+                    $cleanContacts[] = [
+                        'name' => $name,
+                        'phone' => $phone,
+                    ];
+                }
+            }
+        } elseif (!empty($validated['contact_person_1_name']) || !empty($validated['contact_person_1_phone'])) {
+            for ($i = 1; $i <= 4; $i++) {
+                $n = trim((string) ($validated["contact_person_{$i}_name"] ?? ''));
+                $p = trim((string) ($validated["contact_person_{$i}_phone"] ?? ''));
+                if (!empty($n) || !empty($p)) {
+                    $cleanContacts[] = ['name' => $n, 'phone' => $p];
+                }
+            }
+        }
+
+        // Save JSON representation of all direct contacts
+        Setting::updateOrCreate(
+            ['key' => 'direct_contacts'],
+            ['value' => json_encode($cleanContacts)]
+        );
+
+        // Sync legacy keys contact_person_1..4 for full backward compatibility
+        for ($i = 1; $i <= 4; $i++) {
+            $idx = $i - 1;
+            $legacyName = isset($cleanContacts[$idx]) ? $cleanContacts[$idx]['name'] : '';
+            $legacyPhone = isset($cleanContacts[$idx]) ? $cleanContacts[$idx]['phone'] : '';
+            Setting::updateOrCreate(['key' => "contact_person_{$i}_name"], ['value' => $legacyName]);
+            Setting::updateOrCreate(['key' => "contact_person_{$i}_phone"], ['value' => $legacyPhone]);
+        }
+
+        // Clean up contact fields before iterating through remaining settings
+        unset($validated['contact_persons']);
+        for ($i = 1; $i <= 4; $i++) {
+            unset($validated["contact_person_{$i}_name"], $validated["contact_person_{$i}_phone"]);
         }
 
         foreach ($validated as $key => $value) {
@@ -279,5 +326,47 @@ class SettingController extends Controller
         } else {
             return back()->with('error', 'Sebagian folder belum bisa ditulis otomatis oleh web server: ' . implode(', ', $stillFailed) . '. Harap jalankan perintah di terminal server: sudo chmod -R 775 /var/www/Boutique-profile/public/uploads');
         }
+    }
+
+    /**
+     * AJAX endpoint to save direct contacts immediately (Tambah, Edit, Hapus).
+     */
+    public function saveContactsAjax(Request $request)
+    {
+        $cleanContacts = [];
+        if ($request->has('contact_persons') && is_array($request->input('contact_persons'))) {
+            foreach ($request->input('contact_persons') as $cp) {
+                $name = trim((string) ($cp['name'] ?? ''));
+                $phone = trim((string) ($cp['phone'] ?? ''));
+                if (!empty($name) || !empty($phone)) {
+                    $cleanContacts[] = [
+                        'name' => $name,
+                        'phone' => $phone,
+                    ];
+                }
+            }
+        }
+
+        // Save JSON representation
+        Setting::updateOrCreate(
+            ['key' => 'direct_contacts'],
+            ['value' => json_encode($cleanContacts)]
+        );
+
+        // Sync legacy keys up to 10
+        for ($i = 1; $i <= 10; $i++) {
+            $idx = $i - 1;
+            $legacyName = isset($cleanContacts[$idx]) ? $cleanContacts[$idx]['name'] : '';
+            $legacyPhone = isset($cleanContacts[$idx]) ? $cleanContacts[$idx]['phone'] : '';
+            Setting::updateOrCreate(['key' => "contact_person_{$i}_name"], ['value' => $legacyName]);
+            Setting::updateOrCreate(['key' => "contact_person_{$i}_phone"], ['value' => $legacyPhone]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Daftar kontak berhasil diperbarui dan disimpan secara instan!',
+            'count' => count($cleanContacts),
+            'contacts' => $cleanContacts
+        ]);
     }
 }

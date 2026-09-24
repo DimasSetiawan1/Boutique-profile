@@ -416,6 +416,59 @@
         .portfolio-card:hover .portfolio-img {
             transform: scale(1.08);
         }
+        .portfolio-card.has-lightbox {
+            cursor: pointer;
+        }
+        .portfolio-img-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 3;
+        }
+        .portfolio-card:hover .portfolio-img-overlay {
+            opacity: 1;
+        }
+        .portfolio-zoom-btn {
+            background: rgba(255, 255, 255, 0.95);
+            color: #1e293b;
+            padding: 9px 20px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+            transform: translateY(12px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        .portfolio-card:hover .portfolio-zoom-btn {
+            transform: translateY(0) scale(1);
+        }
+        .portfolio-card-zoom-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(198, 40, 40, 0.08);
+            color: var(--primary-accent);
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+        }
+        .portfolio-card:hover .portfolio-card-zoom-icon {
+            background: var(--primary-accent);
+            color: #ffffff;
+            transform: scale(1.1);
+        }
         .portfolio-placeholder {
             width: 100%;
             height: 100%;
@@ -458,7 +511,7 @@
         .portfolio-title {
             font-size: 1.2rem;
             font-weight: 700;
-            margin-bottom: 10px;
+            margin-bottom: 0;
             color: var(--text-color);
         }
         .portfolio-desc {
@@ -466,6 +519,191 @@
             color: #546e7a;
             line-height: 1.5;
             margin: 0;
+        }
+
+        /* Lightbox Modal Styles */
+        .portfolio-lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s ease;
+        }
+        .portfolio-lightbox.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .portfolio-lightbox-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 15, 26, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .portfolio-lightbox-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px 24px;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        .portfolio-lightbox-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1250px;
+            margin: 0 auto;
+            padding-bottom: 8px;
+        }
+        .portfolio-lightbox-counter {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.12);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            letter-spacing: 0.5px;
+        }
+        .portfolio-lightbox-close {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .portfolio-lightbox-close:hover {
+            background: var(--primary-accent);
+            border-color: var(--primary-accent);
+            transform: rotate(90deg) scale(1.08);
+            color: #ffffff;
+        }
+        .portfolio-lightbox-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            width: 100%;
+            max-width: 1250px;
+            margin: 0 auto;
+            gap: 15px;
+        }
+        .portfolio-lightbox-img-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            max-width: calc(100% - 130px);
+            margin: auto;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+        }
+        .portfolio-lightbox-img {
+            max-width: 100%;
+            max-height: 72vh;
+            object-fit: contain;
+            border-radius: 14px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: #0f172a;
+            user-select: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .portfolio-lightbox-caption {
+            margin-top: 14px;
+            text-align: center;
+            color: #ffffff;
+            max-width: 750px;
+            background: rgba(0, 0, 0, 0.45);
+            padding: 10px 24px;
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .portfolio-lightbox-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: #ffffff;
+        }
+        .portfolio-lightbox-desc {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 0;
+            line-height: 1.4;
+        }
+        .portfolio-lightbox-nav {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+            z-index: 12;
+        }
+        .portfolio-lightbox-nav:hover {
+            background: rgba(255, 255, 255, 0.28);
+            transform: scale(1.1);
+            color: #ffffff;
+        }
+        @media (max-width: 768px) {
+            .portfolio-lightbox-container {
+                padding: 12px 14px;
+            }
+            .portfolio-lightbox-nav {
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 42px;
+                height: 42px;
+                font-size: 1.15rem;
+                background: rgba(15, 23, 42, 0.7);
+            }
+            .portfolio-lightbox-prev {
+                left: 6px;
+            }
+            .portfolio-lightbox-next {
+                right: 6px;
+            }
+            .portfolio-lightbox-img-wrapper {
+                max-width: 95vw;
+            }
+            .portfolio-lightbox-img {
+                max-height: 64vh;
+            }
+        }
+        .client-product-img.has-lightbox {
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .client-product-img.has-lightbox:hover {
+            transform: scale(1.08);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18) !important;
         }
 
         /* Team Cards (Who We Are) */
@@ -1398,11 +1636,25 @@
             <div class="row g-4">
                 @forelse($portfolios as $work)
                     <div class="col-md-6 col-lg-4 portfolio-item-col" data-category="{{ \Illuminate\Support\Str::slug($work->title_en ?: $work->title_id) }}">
-                        <div class="portfolio-card">
+                        <div class="portfolio-card {{ $work->image_path ? 'has-lightbox' : '' }}"
+                             @if($work->image_path)
+                                 data-lightbox-src="{{ asset($work->image_path) }}"
+                                 data-lightbox-title="{{ $work->title }}"
+                                 data-lightbox-desc="{{ $work->description }}"
+                                 role="button"
+                                 tabindex="0"
+                                 title="{{ app()->getLocale() == 'id' ? 'Klik untuk membuka gambar' : 'Click to view image' }}"
+                             @endif>
                             <div class="portfolio-img-wrapper">
                                 <span class="portfolio-badge">{{ $work->title }}</span>
                                 @if($work->image_path)
-                                    <img src="{{ asset($work->image_path) }}" class="portfolio-img" alt="{{ $work->title }}">
+                                    <img src="{{ asset($work->image_path) }}" class="portfolio-img" alt="{{ $work->title }}" loading="lazy">
+                                    <div class="portfolio-img-overlay">
+                                        <span class="portfolio-zoom-btn">
+                                            <i class="bi bi-arrows-fullscreen"></i>
+                                            <span>{{ app()->getLocale() == 'id' ? 'Buka Gambar' : 'View Image' }}</span>
+                                        </span>
+                                    </div>
                                 @else
                                     <div class="portfolio-placeholder">
                                         @if(str_contains(strtolower($work->title_en ?? ''), 'neon'))
@@ -1413,7 +1665,7 @@
                                             <i class="bi bi-signpost-split"></i>
                                         @elseif(str_contains(strtolower($work->title_en ?? ''), 'print') || str_contains(strtolower($work->title_id ?? ''), 'cetak'))
                                             <i class="bi bi-printer"></i>
-                                        @elseif(str_contains(strtolower($work->title_en ?? ''), 'gimmick') || str_contains(strtolower($work->title_en ?? ''), 'merchandise'))
+                                        @elseif(str_contains(strtolower($work->title_en ?? ''), 'gimmick') || str_contains(strtolower($work->title_id ?? ''), 'merchandise'))
                                             <i class="bi bi-gift"></i>
                                         @else
                                             <i class="bi bi-image"></i>
@@ -1424,8 +1676,15 @@
                                 @endif
                             </div>
                             <div class="portfolio-info">
-                                <h4 class="portfolio-title">{{ $work->title }}</h4>
-                                <p class="portfolio-desc">{{ $work->description }}</p>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <h4 class="portfolio-title mb-0">{{ $work->title }}</h4>
+                                    @if($work->image_path)
+                                        <span class="portfolio-card-zoom-icon" title="{{ app()->getLocale() == 'id' ? 'Buka Gambar' : 'View Image' }}">
+                                            <i class="bi bi-zoom-in"></i>
+                                        </span>
+                                    @endif
+                                </div>
+                                <p class="portfolio-desc mt-2">{{ $work->description }}</p>
                             </div>
                         </div>
                     </div>
@@ -1456,7 +1715,7 @@
                         </div>
                     @endif
                     <div class="col-6 col-md-4 col-lg-2 text-center">
-                        <div class="client-logo-wrapper mb-3 d-flex align-items-center justify-content-center" style="height: 80px;">
+                        <div class="client-logo-wrapper mb-3 d-flex align-items-center justify-content-center" style="min-height: 80px; height: auto;">
                             @if($client->logo)
                                 <img src="{{ asset($client->logo) }}" alt="{{ $client->name }}" class="img-fluid client-logo" style="{{ $client->logo_width ? 'max-width:'.$client->logo_width.'px;' : '' }}{{ $client->logo_height ? ' max-height:'.$client->logo_height.'px;' : '' }}">
                             @else
@@ -1466,7 +1725,14 @@
                         @if($client->productImages->count() > 0)
                             <div class="mt-2 d-flex flex-wrap justify-content-center gap-2 pt-2" style="border-top:2px solid #000;">
                                 @foreach($client->productImages as $product)
-                                    <img src="{{ asset($product->image) }}" alt="Product" class="img-fluid rounded shadow-sm" style="max-height: 100px; max-width: 120px; object-fit: contain; transition: all 0.3s ease;">
+                                    <img src="{{ asset($product->image) }}" 
+                                         alt="Product {{ $client->name }}" 
+                                         class="img-fluid rounded shadow-sm client-product-img has-lightbox" 
+                                         data-lightbox-src="{{ asset($product->image) }}"
+                                         data-lightbox-title="{{ $client->name }}"
+                                         data-lightbox-desc="Product Showcase"
+                                         style="{{ $product->width ? 'max-width:'.$product->width.'px;' : 'max-width: 120px;' }}{{ $product->height ? ' max-height:'.$product->height.'px;' : ' max-height: 100px;' }} object-fit: contain; transition: all 0.3s ease; cursor: pointer;" 
+                                         title="{{ app()->getLocale() == 'id' ? 'Klik untuk membuka gambar' : 'Click to view image' }}">
                                 @endforeach
                             </div>
                         @endif
@@ -1557,12 +1823,20 @@
                         
                         <h5 class="fw-bold mb-3" style="font-size: 1.1rem;">{{ __('messages.sections.direct_contacts') }}</h5>
                         @php
-                            $directContacts = [
-                                ['name' => $settings['contact_person_1_name'] ?? 'E. Kosasih', 'phone' => $settings['contact_person_1_phone'] ?? '0856 9317 4242'],
-                                ['name' => $settings['contact_person_2_name'] ?? 'Oleh Wijayana', 'phone' => $settings['contact_person_2_phone'] ?? '0858 9111 8571'],
-                                ['name' => $settings['contact_person_3_name'] ?? 'Lomri Amiruddin', 'phone' => $settings['contact_person_3_phone'] ?? '0812 8825 524'],
-                                ['name' => $settings['contact_person_4_name'] ?? 'Jajat Sujana (Didin)', 'phone' => $settings['contact_person_4_phone'] ?? '0816 909 549'],
-                            ];
+                            $rawJson = $settings['direct_contacts'] ?? null;
+                            $jsonContacts = ($rawJson !== null) ? json_decode($rawJson, true) : null;
+                            if (is_array($jsonContacts)) {
+                                $directContacts = $jsonContacts;
+                            } else {
+                                $directContacts = [];
+                                for ($i = 1; $i <= 4; $i++) {
+                                    $n = trim((string)($settings["contact_person_{$i}_name"] ?? ''));
+                                    $p = trim((string)($settings["contact_person_{$i}_phone"] ?? ''));
+                                    if (!empty($n) || !empty($p)) {
+                                        $directContacts[] = ['name' => $n, 'phone' => $p];
+                                    }
+                                }
+                            }
                         @endphp
                         <div class="direct-contact-list">
                             @foreach($directContacts as $cp)
@@ -1703,6 +1977,39 @@
             </div>
         </div>
     </footer>
+
+    <!-- Portfolio Image Lightbox Modal -->
+    <div id="portfolioLightbox" class="portfolio-lightbox" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="portfolio-lightbox-backdrop"></div>
+        <div class="portfolio-lightbox-container">
+            <!-- Header bar with counter & close button -->
+            <div class="portfolio-lightbox-header">
+                <div class="portfolio-lightbox-counter" id="lightboxCounter">1 / 1</div>
+                <button type="button" class="portfolio-lightbox-close" id="lightboxCloseBtn" aria-label="Tutup / Close (Esc)" title="Tutup (Esc)">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <!-- Body with Prev / Image / Next -->
+            <div class="portfolio-lightbox-body">
+                <button type="button" class="portfolio-lightbox-nav portfolio-lightbox-prev" id="lightboxPrevBtn" aria-label="Sebelumnya" title="Sebelumnya (←)">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+
+                <div class="portfolio-lightbox-img-wrapper" id="lightboxImgWrapper">
+                    <img id="lightboxImage" src="" alt="Portfolio Image" class="portfolio-lightbox-img">
+                    <div class="portfolio-lightbox-caption" id="lightboxCaption">
+                        <h4 id="lightboxTitle" class="portfolio-lightbox-title"></h4>
+                        <p id="lightboxDesc" class="portfolio-lightbox-desc"></p>
+                    </div>
+                </div>
+
+                <button type="button" class="portfolio-lightbox-nav portfolio-lightbox-next" id="lightboxNextBtn" aria-label="Selanjutnya" title="Selanjutnya (→)">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -2041,7 +2348,7 @@
                 }
             }
 
-            // Form Submit Guard
+            // Form Submit Guard with Custom System Popup
             if (contactForm) {
                 contactForm.addEventListener('submit', function (e) {
                     if (!contactEmailValid || !contactPhoneValid) {
@@ -2049,6 +2356,12 @@
                         if (contactWarning) {
                             contactWarning.style.display = 'block';
                             contactWarning.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        const errReason = !contactEmailValid 
+                            ? 'Alamat email yang Anda masukkan belum valid. Harap periksa dan masukkan email yang benar.' 
+                            : 'Nomor telepon / WhatsApp belum valid (minimal 9 digit angka).';
+                        if (typeof window.showUserPopup === 'function') {
+                            window.showUserPopup(errReason, 'Periksa Kembali Formulir', 'warning', 'Oke, Saya Lengkapi');
                         }
                         if (!contactEmailValid) {
                             contactEmail.focus();
@@ -2059,7 +2372,236 @@
                     }
                 });
             }
+
+            // Portfolio Image Lightbox Logic
+            const lightbox = document.getElementById('portfolioLightbox');
+            const lightboxImg = document.getElementById('lightboxImage');
+            const lightboxTitle = document.getElementById('lightboxTitle');
+            const lightboxDesc = document.getElementById('lightboxDesc');
+            const lightboxCounter = document.getElementById('lightboxCounter');
+            const lightboxCloseBtn = document.getElementById('lightboxCloseBtn');
+            const lightboxPrevBtn = document.getElementById('lightboxPrevBtn');
+            const lightboxNextBtn = document.getElementById('lightboxNextBtn');
+            const lightboxBackdrop = document.querySelector('.portfolio-lightbox-backdrop');
+
+            let currentLightboxIndex = 0;
+            let activeLightboxItems = [];
+
+            function getVisibleLightboxItems() {
+                const allItems = Array.from(document.querySelectorAll('.has-lightbox[data-lightbox-src]'));
+                return allItems.filter(el => {
+                    const col = el.closest('.portfolio-item-col');
+                    if (col) {
+                        return window.getComputedStyle(col).display !== 'none';
+                    }
+                    return window.getComputedStyle(el).display !== 'none';
+                });
+            }
+
+            function openLightbox(index) {
+                activeLightboxItems = getVisibleLightboxItems();
+                if (activeLightboxItems.length === 0) return;
+
+                if (index < 0) index = 0;
+                if (index >= activeLightboxItems.length) index = activeLightboxItems.length - 1;
+                currentLightboxIndex = index;
+
+                updateLightboxContent();
+
+                lightbox.classList.add('active');
+                lightbox.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function updateLightboxContent() {
+                const item = activeLightboxItems[currentLightboxIndex];
+                if (!item) return;
+
+                const src = item.getAttribute('data-lightbox-src');
+                const title = item.getAttribute('data-lightbox-title') || '';
+                const desc = item.getAttribute('data-lightbox-desc') || '';
+
+                lightboxImg.style.opacity = '0';
+                lightboxImg.style.transform = 'scale(0.96)';
+
+                setTimeout(() => {
+                    lightboxImg.src = src;
+                    lightboxImg.alt = title;
+                    lightboxTitle.textContent = title;
+                    lightboxTitle.style.display = title ? 'block' : 'none';
+                    lightboxDesc.textContent = desc;
+                    lightboxDesc.style.display = desc ? 'block' : 'none';
+
+                    lightboxCounter.textContent = `${currentLightboxIndex + 1} / ${activeLightboxItems.length}`;
+                    
+                    if (activeLightboxItems.length <= 1) {
+                        lightboxPrevBtn.style.display = 'none';
+                        lightboxNextBtn.style.display = 'none';
+                        lightboxCounter.style.display = 'none';
+                    } else {
+                        lightboxPrevBtn.style.display = 'inline-flex';
+                        lightboxNextBtn.style.display = 'inline-flex';
+                        lightboxCounter.style.display = 'inline-block';
+                    }
+
+                    lightboxImg.onload = function() {
+                        lightboxImg.style.opacity = '1';
+                        lightboxImg.style.transform = 'scale(1)';
+                    };
+                    // In case image is cached
+                    lightboxImg.style.opacity = '1';
+                    lightboxImg.style.transform = 'scale(1)';
+                }, 120);
+            }
+
+            function closeLightbox() {
+                lightbox.classList.remove('active');
+                lightbox.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+                setTimeout(() => {
+                    lightboxImg.src = '';
+                }, 250);
+            }
+
+            function nextLightboxItem() {
+                if (activeLightboxItems.length <= 1) return;
+                currentLightboxIndex = (currentLightboxIndex + 1) % activeLightboxItems.length;
+                updateLightboxContent();
+            }
+
+            function prevLightboxItem() {
+                if (activeLightboxItems.length <= 1) return;
+                currentLightboxIndex = (currentLightboxIndex - 1 + activeLightboxItems.length) % activeLightboxItems.length;
+                updateLightboxContent();
+            }
+
+            // Click listener for all lightbox triggers
+            document.addEventListener('click', function(e) {
+                const targetTrigger = e.target.closest('.has-lightbox[data-lightbox-src]');
+                if (targetTrigger) {
+                    e.preventDefault();
+                    activeLightboxItems = getVisibleLightboxItems();
+                    const idx = activeLightboxItems.indexOf(targetTrigger);
+                    openLightbox(idx >= 0 ? idx : 0);
+                }
+            });
+
+            // Keyboard access for cards (Enter or Space)
+            document.addEventListener('keydown', function(e) {
+                if ((e.key === 'Enter' || e.key === ' ') && document.activeElement && document.activeElement.classList.contains('has-lightbox')) {
+                    e.preventDefault();
+                    document.activeElement.click();
+                }
+            });
+
+            if (lightboxCloseBtn) lightboxCloseBtn.addEventListener('click', closeLightbox);
+            if (lightboxBackdrop) lightboxBackdrop.addEventListener('click', closeLightbox);
+            if (lightboxNextBtn) lightboxNextBtn.addEventListener('click', nextLightboxItem);
+            if (lightboxPrevBtn) lightboxPrevBtn.addEventListener('click', prevLightboxItem);
+
+            // Close when clicking outside image wrapper in the body
+            const lightboxBody = document.querySelector('.portfolio-lightbox-body');
+            if (lightboxBody) {
+                lightboxBody.addEventListener('click', function(e) {
+                    if (e.target === lightboxBody) {
+                        closeLightbox();
+                    }
+                });
+            }
+
+            // Keyboard controls while lightbox is open
+            document.addEventListener('keydown', function(e) {
+                if (!lightbox.classList.contains('active')) return;
+
+                if (e.key === 'Escape') {
+                    closeLightbox();
+                } else if (e.key === 'ArrowRight') {
+                    nextLightboxItem();
+                } else if (e.key === 'ArrowLeft') {
+                    prevLightboxItem();
+                }
+            });
             
+        });
+    </script>
+
+    <!-- Modal System Popup Frontend ("Pop Up Oke") -->
+    <div class="modal fade" id="userPopupModal" tabindex="-1" aria-labelledby="userPopupTitle" aria-hidden="true" style="z-index: 10999;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 450px;">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-center p-4 position-relative" style="background: #ffffff;">
+                <div class="d-flex justify-content-center mb-3">
+                    <div id="userPopupIconBox" class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 82px; height: 82px; background: rgba(16, 185, 129, 0.12); border: 2px solid rgba(16, 185, 129, 0.25); transition: all 0.3s ease;">
+                        <i id="userPopupIcon" class="bi bi-check2-circle text-success" style="font-size: 2.8rem;"></i>
+                    </div>
+                </div>
+                <h4 class="fw-bold text-dark mb-2" id="userPopupTitle">Pesan Berhasil Terkirim!</h4>
+                <p class="text-secondary small mb-4 px-2" id="userPopupMessage" style="line-height: 1.6; font-size: 0.95rem;">
+                    Terima kasih telah menghubungi Boutique Design. Tim kami akan segera meninjau pesan Anda dan merespons secepatnya.
+                </p>
+                <div class="d-flex justify-content-center">
+                    <button type="button" class="btn btn-danger rounded-pill px-5 py-2.5 fw-bold shadow-sm" id="userPopupBtn" data-bs-dismiss="modal" style="min-width: 170px; background-color: var(--primary-accent); border-color: var(--primary-accent); font-size: 0.95rem; letter-spacing: 0.3px;">
+                        Oke, Terima Kasih
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frontend Popup Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            window.showUserPopup = function(message, title = 'Pemberitahuan', type = 'success', btnText = 'Oke, Mengerti') {
+                const modalEl = document.getElementById('userPopupModal');
+                if (!modalEl || typeof bootstrap === 'undefined') return;
+
+                const titleEl = document.getElementById('userPopupTitle');
+                const msgEl = document.getElementById('userPopupMessage');
+                const iconBox = document.getElementById('userPopupIconBox');
+                const iconEl = document.getElementById('userPopupIcon');
+                const btnEl = document.getElementById('userPopupBtn');
+
+                if (titleEl) titleEl.textContent = title;
+                if (msgEl) msgEl.innerHTML = message;
+                if (btnEl) btnEl.textContent = btnText;
+
+                if (iconBox && iconEl) {
+                    if (type === 'success') {
+                        iconBox.style.background = 'rgba(16, 185, 129, 0.12)';
+                        iconBox.style.border = '2px solid rgba(16, 185, 129, 0.25)';
+                        iconEl.className = 'bi bi-check2-circle text-success';
+                        btnEl.className = 'btn btn-danger rounded-pill px-5 py-2.5 fw-bold shadow-sm';
+                        btnEl.style.backgroundColor = 'var(--primary-accent)';
+                        btnEl.style.borderColor = 'var(--primary-accent)';
+                    } else if (type === 'warning') {
+                        iconBox.style.background = 'rgba(245, 158, 11, 0.12)';
+                        iconBox.style.border = '2px solid rgba(245, 158, 11, 0.25)';
+                        iconEl.className = 'bi bi-exclamation-circle text-warning';
+                        btnEl.className = 'btn btn-dark rounded-pill px-5 py-2.5 fw-bold shadow-sm';
+                        btnEl.style.backgroundColor = '';
+                        btnEl.style.borderColor = '';
+                    } else {
+                        iconBox.style.background = 'rgba(239, 68, 68, 0.12)';
+                        iconBox.style.border = '2px solid rgba(239, 68, 68, 0.25)';
+                        iconEl.className = 'bi bi-x-circle text-danger';
+                        btnEl.className = 'btn btn-danger rounded-pill px-5 py-2.5 fw-bold shadow-sm';
+                        btnEl.style.backgroundColor = 'var(--primary-accent)';
+                        btnEl.style.borderColor = 'var(--primary-accent)';
+                    }
+                }
+
+                const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                bsModal.show();
+                setTimeout(() => { if (btnEl) btnEl.focus(); }, 250);
+            };
+
+            // Auto-trigger on Session Flash
+            @if(session('success'))
+                window.showUserPopup(@json(session('success')), 'Pesan Berhasil Terkirim!', 'success', 'Oke, Terima Kasih');
+            @endif
+
+            @if(session('error'))
+                window.showUserPopup(@json(session('error')), 'Pemberitahuan', 'error', 'Oke, Mengerti');
+            @endif
         });
     </script>
 </body>

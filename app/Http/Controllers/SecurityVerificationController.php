@@ -125,9 +125,9 @@ class SecurityVerificationController extends Controller
                 ], 403);
             }
 
-            // 7. Time-Gate Validation: Manusia normal butuh minimal 600ms untuk melihat dan mengeklik
+            // 7. Time-Gate Validation: Mencegah bot instant submit
             $clientElapsed = (int) ($entropy['elapsed'] ?? 0);
-            if ($clientElapsed < 500 && $tokenAge < 1) {
+            if ($clientElapsed < 150 && $tokenAge < 1) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Respons terlalu cepat. Harap tunggu sesaat dan klik kembali.'
@@ -140,24 +140,14 @@ class SecurityVerificationController extends Controller
                 'human_verified_at' => now()->timestamp,
             ]);
 
-            // 9. Terbitkan Secure Cookie bertanda tangan (Valid selama 24 jam)
-            $cookiePayload = Crypt::encryptString(implode('|', [
-                now()->timestamp,
-                $request->ip(),
-                $currentUaHash
-            ]));
-
-            // Cookie berlaku 1440 menit (24 jam), HttpOnly untuk perlindungan maksimal dari XSS
-            $cookie = Cookie::make('b_human_pass', $cookiePayload, 1440, '/', null, false, true, false, 'Lax');
-
             $destination = session('security_intended_url', route('home'));
             session()->forget('security_intended_url');
 
             return response()->json([
                 'success'  => true,
                 'redirect' => $destination,
-                'message'  => 'Verifikasi berhasil! Mengalihkan ke situs...'
-            ])->withCookie($cookie);
+                'message'  => 'Verifikasi berhasil! Mengalihkan ke Company Profile...'
+            ]);
 
         } catch (\Exception $e) {
             CyberSecurityGuard::logThreat('VERIFY_EXCEPTION', 'Exception during verification: ' . $e->getMessage());
@@ -173,36 +163,11 @@ class SecurityVerificationController extends Controller
      */
     public static function isVerified(Request $request): bool
     {
-        // 1. Cek Sesi Aktif
+        // Cek Sesi Aktif
         if (session('human_verified') === true) {
             $verifiedAt = (int) session('human_verified_at', 0);
             if ((now()->timestamp - $verifiedAt) < 86400) {
                 return true;
-            }
-        }
-
-        // 2. Cek Cookie Terenkripsi (Jika pengunjung kembali setelah menutup browser)
-        $cookie = $request->cookie('b_human_pass') ?: $request->cookie('b_shield_pass');
-        if (!empty($cookie)) {
-            try {
-                $decrypted = Crypt::decryptString($cookie);
-                $parts = explode('|', $decrypted);
-                if (count($parts) >= 2) {
-                    $cTime = (int) $parts[0];
-                    $cIp = $parts[1];
-                    
-                    // Pastikan IP dan masa berlaku (24 jam) sesuai
-                    if ($cIp === $request->ip() && (now()->timestamp - $cTime) < 86400) {
-                        // Re-hydrate session
-                        session([
-                            'human_verified'    => true,
-                            'human_verified_at' => $cTime
-                        ]);
-                        return true;
-                    }
-                }
-            } catch (\Exception $e) {
-                // Abaikan jika cookie dimanipulasi
             }
         }
 

@@ -34,11 +34,12 @@ Route::middleware(['bot.challenge'])->group(function () {
     Route::post('/check-contact-phone', [HomeController::class, 'checkContactPhone'])->middleware('throttle:live-check')->name('contact.check_phone');
 });
 
-// Admin Authentication (Login, Forgot Password with OTP)
+// Custom Secret Admin Access URL (No /admin/login, No /login suffix)
+Route::get('/abisg-ji4n', [LoginController::class, 'showLoginForm'])->name('admin.login');
+Route::post('/abisg-ji4n', [LoginController::class, 'login'])->middleware('throttle:login')->name('admin.login.post');
+
+// Admin Authentication (Logout, Check Email, OTP, Password Reset)
 Route::prefix('admin')->name('admin.')->group(function () {
-    // Login
-    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login')->name('login.post');
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::post('/check-email', [LoginController::class, 'checkEmail'])->middleware('throttle:live-check')->name('check_email');
 
@@ -53,6 +54,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/reset-password/otp', [ForgotPasswordController::class, 'showResetOtpForm'])->name('password.otp.form');
     Route::post('/reset-password/otp', [ForgotPasswordController::class, 'verifyResetOtp'])->middleware('throttle:otp')->name('password.otp.verify');
     Route::post('/reset-password/resend', [ForgotPasswordController::class, 'resendResetOtp'])->middleware('throttle:otp')->name('password.otp.resend');
+    Route::post('/reset-password/lockout-send-otp', [ForgotPasswordController::class, 'sendLockoutOtp'])->middleware('throttle:otp')->name('password.lockout.send_otp');
     Route::get('/reset-password/new', [ForgotPasswordController::class, 'showNewPasswordForm'])->name('password.new.form');
     Route::post('/reset-password/new', [ForgotPasswordController::class, 'updateNewPassword'])->middleware('throttle:otp')->name('password.update_new');
 });
@@ -75,6 +77,7 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     // Clients CRUD
     Route::resource('clients', ClientController::class)->except(['show']);
     Route::delete('clients/product/{id}', [ClientController::class, 'deleteProductImage'])->name('clients.deleteProduct');
+    Route::post('clients/product/{id}/dimension', [ClientController::class, 'updateProductDimensionAjax'])->name('clients.updateProductDimension');
 
     // Team Members CRUD
     Route::resource('team', TeamController::class)->except(['show']);
@@ -86,6 +89,7 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     Route::post('/settings/philosophy-image', [SettingController::class, 'uploadPhilosophyImage'])->name('settings.philosophy_image');
     Route::post('/settings/philosophy-image/delete', [SettingController::class, 'deletePhilosophyImage'])->name('settings.philosophy_image.delete');
     Route::post('/settings/fix-permissions', [SettingController::class, 'fixPermissions'])->name('settings.fix_permissions');
+    Route::post('/settings/contacts/save', [SettingController::class, 'saveContactsAjax'])->name('settings.contacts.save');
 
 
     // Inbox Messages

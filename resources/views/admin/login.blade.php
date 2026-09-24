@@ -180,7 +180,32 @@
                 </div>
                 <div id="emailFeedbackMsg" class="small mt-1 fw-medium" style="display: none; font-size: 0.84rem;"></div>
                 @error('email')
-                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @php
+                        $isLockout = preg_match('/(\d+)\s*detik/i', $message, $m);
+                        $lockoutSec = $isLockout ? (int)$m[1] : (session('lockout_seconds') ?? null);
+                    @endphp
+
+                    @if($isLockout)
+                        <div class="alert alert-danger border-0 rounded-4 p-3 mt-3 text-start shadow-sm" id="lockoutAlertBox" style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444 !important;">
+                            <div class="d-flex align-items-center gap-2 mb-1.5">
+                                <span class="spinner-grow spinner-grow-sm text-danger" role="status"></span>
+                                <strong class="small fw-bold text-danger">Akses Login Sementara Ditangguhkan</strong>
+                            </div>
+                            <p class="small text-secondary mb-2" style="line-height: 1.5;">
+                                Terdeteksi 3x salah memasukkan kata sandi. Waktu tunggu blokir:
+                            </p>
+                            <div class="d-flex align-items-center gap-2 my-2 py-1 px-3 bg-white rounded-pill border shadow-sm d-inline-flex" id="timerBadge">
+                                <i class="bi bi-clock-history text-danger fs-5"></i>
+                                <span class="fs-5 fw-bold text-danger font-monospace" id="liveCountdownFormatted">00:00</span>
+                                <span class="small fw-bold text-secondary">(<span id="liveCountdownTimer">{{ $lockoutSec }}</span>s tersisa)</span>
+                            </div>
+                            <div class="small text-muted mt-2" id="lockoutSubText">
+                                Harap tunggu hingga hitungan mundur selesai. Kode OTP dari Gmail belum dikirimkan dan baru akan dikirimkan otomatis setelah waktu blokir berakhir.
+                            </div>
+                        </div>
+                    @else
+                        <div class="invalid-feedback d-block text-start mt-1">{{ $message }}</div>
+                    @endif
                 @enderror
             </div>
             
@@ -314,6 +339,119 @@
                 checkEmailLive();
             }
         }
+
+        // Active Real-Time Countdown Timer for Lockout (Hitungan Waktu Berjalan Mundur)
+        function initLockoutCountdown() {
+            let timerEl = document.getElementById('liveCountdownTimer');
+            const loginBtn = document.querySelector('.btn-login');
+
+            // Fallback: If timerEl is not present yet, check if there is an error message mentioning lockout seconds
+            if (!timerEl) {
+                const feedbackEls = document.querySelectorAll('.invalid-feedback');
+                feedbackEls.forEach(el => {
+                    const match = el.textContent.match(/diblokir selama (\d+) detik/i);
+                    if (match) {
+                        const sec = parseInt(match[1], 10);
+                        el.innerHTML = `
+                            <div class="alert alert-danger border-0 rounded-4 p-3 mt-3 text-start shadow-sm" id="lockoutAlertBox" style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444 !important;">
+                                <div class="d-flex align-items-center gap-2 mb-1.5">
+                                    <span class="spinner-grow spinner-grow-sm text-danger" role="status"></span>
+                                    <strong class="small fw-bold text-danger">Akses Login Sementara Ditangguhkan</strong>
+                                </div>
+                                <p class="small text-secondary mb-2" style="line-height: 1.5;">
+                                    Terdeteksi 3x salah memasukkan kata sandi. Waktu tunggu blokir:
+                                </p>
+                                <div class="d-flex align-items-center gap-2 my-2 py-1 px-3 bg-white rounded-pill border shadow-sm d-inline-flex" id="timerBadge">
+                                    <i class="bi bi-clock-history text-danger fs-5"></i>
+                                    <span class="fs-5 fw-bold text-danger font-monospace" id="liveCountdownTimer">${sec}</span>
+                                    <span class="small fw-bold text-secondary">detik tersisa</span>
+                                </div>
+                                <div class="small text-muted mt-2" id="lockoutSubText">
+                                    Silakan gunakan kode OTP yang telah dikirim ke email Anda untuk memulihkan akun, atau tunggu hingga hitungan mundur selesai.
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                timerEl = document.getElementById('liveCountdownTimer');
+            }
+
+            function formatLockoutTime(totalSec) {
+                if (totalSec <= 0) return '00:00';
+                const hours = Math.floor(totalSec / 3600);
+                const minutes = Math.floor((totalSec % 3600) / 60);
+                const seconds = totalSec % 60;
+                const pad = (n) => String(n).padStart(2, '0');
+                if (hours > 0) {
+                    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+                }
+                return `${pad(minutes)}:${pad(seconds)}`;
+            }
+
+            const formattedEl = document.getElementById('liveCountdownFormatted');
+
+            if (timerEl) {
+                let secondsLeft = parseInt(timerEl.textContent.trim(), 10) || 0;
+
+                if (secondsLeft > 0) {
+                    if (formattedEl) {
+                        formattedEl.textContent = formatLockoutTime(secondsLeft);
+                    }
+
+                    if (loginBtn) {
+                        loginBtn.disabled = true;
+                        loginBtn.style.opacity = '0.65';
+                        loginBtn.style.cursor = 'not-allowed';
+                        loginBtn.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> Akses Diblokir (<span id="btnCountdownSec">${formatLockoutTime(secondsLeft)}</span>)`;
+                    }
+
+                    const countdownInterval = setInterval(function () {
+                        secondsLeft--;
+                        if (secondsLeft > 0) {
+                            timerEl.textContent = secondsLeft;
+                            if (formattedEl) {
+                                formattedEl.textContent = formatLockoutTime(secondsLeft);
+                            }
+                            const btnSec = document.getElementById('btnCountdownSec');
+                            if (btnSec) btnSec.textContent = formatLockoutTime(secondsLeft);
+                        } else {
+                            clearInterval(countdownInterval);
+                            timerEl.textContent = '0';
+                            if (formattedEl) formattedEl.textContent = '00:00';
+
+                            const activeAlert = document.getElementById('lockoutAlertBox');
+                            if (activeAlert) {
+                                activeAlert.style.background = 'rgba(16, 185, 129, 0.12)';
+                                activeAlert.style.borderLeft = '4px solid #10b981 !important';
+                                activeAlert.innerHTML = `
+                                    <div class="d-flex align-items-center gap-2 text-success">
+                                        <i class="bi bi-check-circle-fill fs-4"></i>
+                                        <div>
+                                            <strong class="small fw-bold d-block">Waktu Tunggu Telah Selesai!</strong>
+                                            <span class="small text-secondary">Akses login telah dibuka kembali. Anda sekarang dapat mencoba login kembali.</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+
+                            if (loginBtn) {
+                                loginBtn.disabled = false;
+                                loginBtn.style.opacity = '1';
+                                loginBtn.style.cursor = 'pointer';
+                                loginBtn.innerHTML = `Log In <i class="bi bi-box-arrow-in-right ms-1"></i>`;
+                            }
+
+                            const emailInp = document.getElementById('email');
+                            if (emailInp) {
+                                emailInp.classList.remove('is-invalid');
+                            }
+                        }
+                    }, 1000);
+                }
+            }
+        }
+
+        initLockoutCountdown();
     </script>
 </body>
 </html>

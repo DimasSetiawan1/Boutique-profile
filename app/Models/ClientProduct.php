@@ -9,7 +9,7 @@ class ClientProduct extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['client_id', 'image'];
+    protected $fillable = ['client_id', 'image', 'width', 'height'];
 
     public function client()
     {

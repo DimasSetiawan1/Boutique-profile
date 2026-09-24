@@ -38,18 +38,42 @@
             background-color: #0f172a; /* Midnight Blue Slate */
             color: #94a3b8;
             height: 100vh;
+            height: 100dvh;
+            max-height: 100vh;
+            max-height: 100dvh;
             position: fixed;
             top: 0;
             left: 0;
             display: flex;
             flex-direction: column;
-            z-index: 100;
+            z-index: 1050;
             transition: var(--transition);
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+        }
+
+        /* Sleek custom scrollbar for sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .sidebar-header {
-            padding: 30px 24px;
+            padding: 26px 22px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
+            flex-shrink: 0;
         }
 
         .sidebar-brand .logo-sig {
@@ -73,14 +97,13 @@
 
         .sidebar-menu {
             list-style: none;
-            padding: 24px 0;
+            padding: 18px 0;
             margin: 0;
             flex-grow: 1;
-            overflow-y: auto;
         }
 
         .sidebar-menu li {
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .sidebar-link {
@@ -108,7 +131,11 @@
 
         .sidebar-footer {
             padding: 20px 24px;
+            padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
             border-top: 1px solid rgba(255,255,255,0.05);
+            flex-shrink: 0;
+            background-color: #0f172a;
+            margin-top: auto;
         }
 
         .btn-logout-sidebar {
@@ -134,9 +161,11 @@
             margin-left: var(--sidebar-width);
             flex-grow: 1;
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             width: calc(100% - var(--sidebar-width));
+            overscroll-behavior: contain;
         }
 
         /* Top Bar */
@@ -240,7 +269,9 @@
         /* Responsive */
         @media(max-width: 991px) {
             .sidebar {
-                left: -260px;
+                left: -280px;
+                width: 280px;
+                box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
             }
             .sidebar.active {
                 left: 0;
@@ -254,6 +285,28 @@
             }
             .content-body {
                 padding: 20px;
+            }
+            .sidebar-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.65);
+                backdrop-filter: blur(4px);
+                -webkit-backdrop-filter: blur(4px);
+                z-index: 1040;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
+            }
+            .sidebar-backdrop.active {
+                opacity: 1;
+                visibility: visible;
+            }
+            body.sidebar-open {
+                overflow: hidden !important;
+                touch-action: none;
+            }
+            body.sidebar-open .sidebar {
+                touch-action: pan-y;
             }
         }
 
@@ -300,9 +353,9 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="adminSidebar">
         <div class="sidebar-header">
-            <a class="sidebar-brand text-decoration-none d-block" href="{{ route('home') }}" target="_blank">
-                <img src="{{ asset('uploads/logo.png') }}" alt="Boutique Design " style="height: 48px; width: auto; filter: brightness(0) invert(1);">
-            </a>
+            <div class="sidebar-brand d-block" style="cursor: default; user-select: none;">
+                <img src="{{ asset('uploads/logo.png') }}" alt="Boutique Design" style="height: 48px; width: auto; filter: brightness(0) invert(1); pointer-events: none; user-select: none;">
+            </div>
         </div>
         <ul class="sidebar-menu">
             <li>
@@ -377,6 +430,9 @@
         </div>
     </aside>
 
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
     <!-- Main Wrapper -->
     <div class="main-wrapper">
         <!-- Top Bar -->
@@ -442,17 +498,54 @@
         document.addEventListener('DOMContentLoaded', function() {
             const toggleBtn = document.getElementById('sidebarToggle');
             const sidebar = document.getElementById('adminSidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
             
+            function openSidebar() {
+                sidebar.classList.add('active');
+                if (backdrop) backdrop.classList.add('active');
+                document.body.classList.add('sidebar-open');
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                if (backdrop) backdrop.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+            }
+
             if (toggleBtn && sidebar) {
                 toggleBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    sidebar.classList.toggle('active');
+                    if (sidebar.classList.contains('active')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
                 });
                 
+                if (backdrop) {
+                    backdrop.addEventListener('click', closeSidebar);
+                }
+
                 document.addEventListener('click', function(e) {
                     if (sidebar.classList.contains('active') && !sidebar.contains(e.target) && e.target !== toggleBtn) {
-                        sidebar.classList.remove('active');
+                        closeSidebar();
                     }
+                });
+
+                // Close on ESC key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                        closeSidebar();
+                    }
+                });
+
+                // Auto-close on link click when on mobile screen
+                sidebar.querySelectorAll('.sidebar-link').forEach(link => {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth <= 991) {
+                            closeSidebar();
+                        }
+                    });
                 });
             }
 
@@ -580,6 +673,186 @@
                     }
                 });
             });
+        });
+    </script>
+
+    <!-- Modal System Popup ("Pop Up Oke") -->
+    <div class="modal fade" id="systemPopupModal" tabindex="-1" aria-labelledby="systemPopupTitle" aria-hidden="true" style="z-index: 10999;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-center p-4" style="background: #ffffff;">
+                <div class="d-flex justify-content-center mb-3">
+                    <div id="systemPopupIconBox" class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 78px; height: 78px; background: rgba(16, 185, 129, 0.12); border: 2px solid rgba(16, 185, 129, 0.25); transition: all 0.3s ease;">
+                        <i id="systemPopupIcon" class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i>
+                    </div>
+                </div>
+                <h4 class="fw-bold text-dark mb-2" id="systemPopupTitle">Berhasil!</h4>
+                <p class="text-secondary small mb-4 px-2" id="systemPopupMessage" style="line-height: 1.6; font-size: 0.95rem;">Tindakan Anda telah berhasil diproses.</p>
+                <div class="d-flex justify-content-center">
+                    <button type="button" class="btn btn-dark rounded-pill px-5 py-2.5 fw-bold shadow-sm" id="systemPopupBtn" data-bs-dismiss="modal" style="min-width: 150px; font-size: 0.95rem; letter-spacing: 0.3px;">
+                        Oke
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal System Confirm ("Pop Up Konfirmasi Hapus") -->
+    <div class="modal fade" id="systemConfirmModal" tabindex="-1" aria-labelledby="systemConfirmTitle" aria-hidden="true" style="z-index: 10999;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-center p-4" style="background: #ffffff;">
+                <div class="d-flex justify-content-center mb-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 78px; height: 78px; background: rgba(225, 29, 72, 0.12); border: 2px solid rgba(225, 29, 72, 0.25);">
+                        <i class="bi bi-trash3-fill text-danger" style="font-size: 2.3rem;"></i>
+                    </div>
+                </div>
+                <h4 class="fw-bold text-dark mb-2" id="systemConfirmTitle">Konfirmasi Hapus</h4>
+                <p class="text-secondary small mb-4 px-2" id="systemConfirmMessage" style="line-height: 1.6; font-size: 0.95rem;">Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-semibold text-secondary border" data-bs-dismiss="modal" style="min-width: 110px;">
+                        Batal
+                    </button>
+                    <button type="button" class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm" id="systemConfirmProceedBtn" style="background-color: var(--accent-red); border-color: var(--accent-red); min-width: 120px;">
+                        <i class="bi bi-trash3 me-1"></i> Ya, Hapus!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Popups & Confirmation Interceptor Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Global System Alert ("Pop Up Oke")
+            window.systemAlert = function(message, title = 'Berhasil!', type = 'success', btnText = 'Oke') {
+                const modalEl = document.getElementById('systemPopupModal');
+                if (!modalEl || typeof bootstrap === 'undefined') return;
+                
+                const titleEl = document.getElementById('systemPopupTitle');
+                const msgEl = document.getElementById('systemPopupMessage');
+                const iconBox = document.getElementById('systemPopupIconBox');
+                const iconEl = document.getElementById('systemPopupIcon');
+                const btnEl = document.getElementById('systemPopupBtn');
+
+                if (titleEl) titleEl.textContent = title;
+                if (msgEl) msgEl.innerHTML = message;
+                if (btnEl) btnEl.textContent = btnText;
+
+                if (iconBox && iconEl) {
+                    if (type === 'success') {
+                        iconBox.style.background = 'rgba(16, 185, 129, 0.12)';
+                        iconBox.style.border = '2px solid rgba(16, 185, 129, 0.25)';
+                        iconEl.className = 'bi bi-check-circle-fill text-success';
+                        btnEl.className = 'btn btn-dark rounded-pill px-5 py-2.5 fw-bold shadow-sm';
+                        btnEl.style.backgroundColor = '';
+                        btnEl.style.borderColor = '';
+                    } else if (type === 'error') {
+                        iconBox.style.background = 'rgba(239, 68, 68, 0.12)';
+                        iconBox.style.border = '2px solid rgba(239, 68, 68, 0.25)';
+                        iconEl.className = 'bi bi-exclamation-triangle-fill text-danger';
+                        btnEl.className = 'btn btn-danger rounded-pill px-5 py-2.5 fw-bold shadow-sm';
+                        btnEl.style.backgroundColor = 'var(--accent-red)';
+                        btnEl.style.borderColor = 'var(--accent-red)';
+                    } else {
+                        iconBox.style.background = 'rgba(59, 130, 246, 0.12)';
+                        iconBox.style.border = '2px solid rgba(59, 130, 246, 0.25)';
+                        iconEl.className = 'bi bi-info-circle-fill text-primary';
+                        btnEl.className = 'btn btn-primary rounded-pill px-5 py-2.5 fw-bold shadow-sm';
+                        btnEl.style.backgroundColor = '';
+                        btnEl.style.borderColor = '';
+                    }
+                }
+
+                const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                bsModal.show();
+                setTimeout(() => { if (btnEl) btnEl.focus(); }, 250);
+            };
+
+            // Global System Confirm ("Pop Up Konfirmasi Hapus")
+            let pendingConfirmAction = null;
+            window.systemConfirm = function(message, onConfirm, title = 'Konfirmasi Hapus', confirmBtnText = 'Ya, Hapus!') {
+                const modalEl = document.getElementById('systemConfirmModal');
+                if (!modalEl || typeof bootstrap === 'undefined') {
+                    if (confirm(message)) onConfirm();
+                    return;
+                }
+                const titleEl = document.getElementById('systemConfirmTitle');
+                const msgEl = document.getElementById('systemConfirmMessage');
+                const proceedBtn = document.getElementById('systemConfirmProceedBtn');
+
+                if (titleEl) titleEl.textContent = title;
+                if (msgEl) msgEl.textContent = message;
+                if (proceedBtn) proceedBtn.innerHTML = `<i class="bi bi-trash3 me-1"></i> ${confirmBtnText}`;
+
+                pendingConfirmAction = onConfirm;
+
+                const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                bsModal.show();
+            };
+
+            document.getElementById('systemConfirmProceedBtn')?.addEventListener('click', function() {
+                const modalEl = document.getElementById('systemConfirmModal');
+                const bsModal = bootstrap.Modal.getInstance(modalEl);
+                if (bsModal) bsModal.hide();
+                if (typeof pendingConfirmAction === 'function') {
+                    const action = pendingConfirmAction;
+                    pendingConfirmAction = null;
+                    action();
+                }
+            });
+
+            // Intercept all native browser confirm() on forms & buttons across ALL admin pages
+            function bindConfirmInterceptors() {
+                // 1. Intercept forms with onsubmit="return confirm(...)"
+                document.querySelectorAll('form[onsubmit*="confirm"]').forEach(form => {
+                    const rawAttr = form.getAttribute('onsubmit') || '';
+                    const match = rawAttr.match(/confirm\s*\(\s*['"`](.*?)['"`]\s*\)/);
+                    const msg = match ? match[1] : 'Apakah Anda yakin ingin menghapus data ini?';
+                    
+                    form.removeAttribute('onsubmit');
+                    form.addEventListener('submit', function(e) {
+                        if (!form.dataset.confirmed) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.systemConfirm(msg, function() {
+                                form.dataset.confirmed = "true";
+                                form.submit();
+                            });
+                            return false;
+                        }
+                    });
+                });
+
+                // 2. Intercept buttons or links with onclick containing confirm(...)
+                document.querySelectorAll('button[onclick*="confirm"], a[onclick*="confirm"]').forEach(el => {
+                    const rawAttr = el.getAttribute('onclick') || '';
+                    const match = rawAttr.match(/confirm\s*\(\s*['"`](.*?)['"`]\s*\)/);
+                    const msg = match ? match[1] : 'Apakah Anda yakin ingin menghapus item ini?';
+                    
+                    el.removeAttribute('onclick');
+                    el.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.systemConfirm(msg, function() {
+                            const parentForm = el.closest('form');
+                            if (parentForm) {
+                                parentForm.dataset.confirmed = "true";
+                                parentForm.submit();
+                            }
+                        });
+                    });
+                });
+            }
+
+            bindConfirmInterceptors();
+
+            // Auto-trigger System Popup Oke on Session Flash
+            @if(session('success'))
+                window.systemAlert(@json(session('success')), 'Berhasil!', 'success', 'Oke');
+            @endif
+
+            @if(session('error'))
+                window.systemAlert(@json(session('error')), 'Perhatian', 'error', 'Oke, Mengerti');
+            @endif
         });
     </script>
 </body>

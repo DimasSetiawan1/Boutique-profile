@@ -46,17 +46,39 @@ class CyberSecurityGuard
     ];
 
     /**
-     * SQL Injection attack signatures
+     * Comprehensive SQL Injection attack signatures
      */
     protected static $sqliSignatures = [
-        '/\b(union\s+all\s+select|union\s+select)\b/i',
-        '/\b(information_schema|select\s+schema_name)\b/i',
-        '/\b(sleep\s*\(\s*\d+\s*\)|benchmark\s*\(\s*\d+\s*,)/i',
-        '/\b(load_file|into\s+outfile|into\s+dumpfile)\b/i',
+        // 1. Union-based SQL injection
+        '/\bunion\s+(?:all\s+|distinct\s+)?select\b/i',
+
+        // 2. Database schemas & system tables
+        '/\b(information_schema|sys\.databases|sys\.tables|sys\.sysobjects)\b/i',
+        '/\bselect\s+(?:schema_name|table_name|column_name)\b/i',
+
+        // 3. Time-based blind SQL injection
+        '/\b(sleep|pg_sleep)\s*\(\s*\d+\s*\)/i',
+        '/\bbenchmark\s*\(\s*\d+\s*,/i',
+        '/\bwaitfor\s+delay\s+[\'"]/i',
+
+        // 4. File access & OS command execution
+        '/\b(load_file|into\s+(?:out|dump)file)\b/i',
         '/\b(xp_cmdshell|exec\s+master\.\.xp_cmdshell)\b/i',
-        '/\b(waitfor\s+delay\s+[\'"])/i',
-        '/(--|\#|\/\*).*$/m',
-        '/\b(or\s+1\s*=\s*1|or\s+true\b|\'\s*or\s*\'1\'\s*=\s*\'1)/i',
+
+        // 5. Stacked SQL queries (drop, truncate, delete, update, insert)
+        '/;\s*(?:drop\s+table|alter\s+table|truncate\s+table|delete\s+from|insert\s+into|update\s+\w+\s+set)\b/i',
+
+        // 6. Error-based & XML injection functions
+        '/\b(extractvalue|updatexml)\s*\(/i',
+
+        // 7. Boolean-based tautologies (e.g. ' OR '1'='1', ' OR 'x'='x', OR 1=1, ' OR true)
+        '/(?:[\'"])\s*(?:or|and)\s+[\'"]?([a-zA-Z0-9_-]+)[\'"]?\s*=\s*[\'"]?\1[\'"]?/i',
+        '/\b(?:or|and)\s+1\s*=\s*1\b/i',
+        '/(?:[\'"])\s*(?:or|and)\s+(?:true|false)\b/i',
+
+        // 8. SQL comment evasions after quote / input break (e.g. admin'--, admin' #, admin'/*)
+        '/(?:[\'"])\s*(?:--|#|\/\*)/',
+        '/\/\*.*?\*\//s',
     ];
 
     /**
@@ -208,14 +230,22 @@ class CyberSecurityGuard
     }
 
     /**
-     * Log cyber security events for admin review.
+     * Log cyber security events to dedicated security log file (storage/logs/security.log)
+     * keeping laravel.log clean for application system errors only.
      */
     public static function logThreat($type, $details)
     {
-        $ip = request()->ip() ?? 'UNKNOWN_IP';
-        $url = request()->fullUrl() ?? 'UNKNOWN_URL';
-        $ua = request()->header('User-Agent') ?? 'UNKNOWN_UA';
+        try {
+            $ip = request()->ip() ?? 'UNKNOWN_IP';
+            $url = request()->fullUrl() ?? 'UNKNOWN_URL';
+            $ua = request()->header('User-Agent') ?? 'UNKNOWN_UA';
+            $date = date('Y-m-d H:i:s');
+            $line = "[{$date}] [CYBER_SECURITY_GUARD] Blocked {$type}: {$details} | IP: {$ip} | URL: {$url} | UA: {$ua}" . PHP_EOL;
 
-        Log::channel('single')->warning("[CYBER_SECURITY_GUARD] Blocked {$type}: {$details} | IP: {$ip} | URL: {$url} | UA: {$ua}");
+            $logPath = storage_path('logs/security.log');
+            @file_put_contents($logPath, $line, FILE_APPEND | LOCK_EX);
+        } catch (\Throwable $e) {
+            // Silently suppress logging failures
+        }
     }
 }
