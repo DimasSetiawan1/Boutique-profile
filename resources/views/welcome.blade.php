@@ -2298,6 +2298,7 @@
         .reveal-init .reveal-delay-6.revealed { transition-delay: 1.12s !important; }
 
         @media (prefers-reduced-motion: reduce) {
+            /* Tetap berikan transisi lembut agar animasi tetap berjalan elegan di laptop */
             .reveal-init .reveal,
             .reveal-init .reveal-up,
             .reveal-init .reveal-down,
@@ -2305,9 +2306,7 @@
             .reveal-init .reveal-right,
             .reveal-init .reveal-zoom,
             .reveal-init .reveal-fade {
-                opacity: 1 !important;
-                transform: none !important;
-                transition: none !important;
+                transition-duration: 0.55s !important;
             }
         }
     </style>
@@ -3742,11 +3741,21 @@
                         });
                     }, {
                         root: null,
-                        threshold: 0.06,
-                        rootMargin: '-10px 0px -25px 0px'
+                        threshold: 0.02,
+                        rootMargin: '25px 0px 25px 0px'
                     });
 
                     revealElements.forEach(el => scrollRevealObserver.observe(el));
+
+                    // Langsung jalankan animasi untuk semua elemen yang berada di layar laptop saat pertama kali dimuat
+                    setTimeout(() => {
+                        revealElements.forEach(el => {
+                            const rect = el.getBoundingClientRect();
+                            if (rect.top < window.innerHeight && rect.bottom > 0) {
+                                el.classList.add('revealed');
+                            }
+                        });
+                    }, 80);
                 } else {
                     revealElements.forEach(el => el.classList.add('revealed'));
                 }
