@@ -105,7 +105,8 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     // Backup & Restore System
     Route::get('/backup', [BackupController::class, 'index'])->name('backup.index');
     Route::get('/backup/download', [BackupController::class, 'downloadBackup'])->name('backup.download');
-    Route::post('/backup/upload', [BackupController::class, 'uploadBackup'])->name('backup.upload');
+    Route::post('/backup/sync-process', [BackupController::class, 'uploadBackup'])->name('backup.upload');
+    Route::post('/backup/upload', [BackupController::class, 'uploadBackup']); // Fallback alias
 
 
     // Inbox Messages
