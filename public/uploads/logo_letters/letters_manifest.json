@@ -1,0 +1,137 @@
+[
+    {
+        "key": "b_B",
+        "char": "B",
+        "x": 0,
+        "y": 2,
+        "w": 715,
+        "h": 729,
+        "file": "b_B_crop.png"
+    },
+    {
+        "key": "b_o",
+        "char": "o",
+        "x": 715,
+        "y": 88,
+        "w": 180,
+        "h": 408,
+        "file": "b_o_crop.png"
+    },
+    {
+        "key": "b_u1",
+        "char": "u",
+        "x": 895,
+        "y": 296,
+        "w": 195,
+        "h": 197,
+        "file": "b_u1_crop.png"
+    },
+    {
+        "key": "b_t",
+        "char": "t",
+        "x": 874,
+        "y": 0,
+        "w": 547,
+        "h": 495,
+        "file": "b_t_crop.png"
+    },
+    {
+        "key": "b_i",
+        "char": "i",
+        "x": 1290,
+        "y": 9,
+        "w": 140,
+        "h": 949,
+        "file": "b_i_crop.png"
+    },
+    {
+        "key": "accent",
+        "char": "tick",
+        "x": 1431,
+        "y": 84,
+        "w": 102,
+        "h": 129,
+        "file": "accent_crop.png"
+    },
+    {
+        "key": "b_q",
+        "char": "q",
+        "x": 1430,
+        "y": 14,
+        "w": 290,
+        "h": 706,
+        "file": "b_q_crop.png"
+    },
+    {
+        "key": "b_u2",
+        "char": "u",
+        "x": 1720,
+        "y": 299,
+        "w": 200,
+        "h": 213,
+        "file": "b_u2_crop.png"
+    },
+    {
+        "key": "b_e",
+        "char": "e",
+        "x": 1920,
+        "y": 267,
+        "w": 420,
+        "h": 262,
+        "file": "b_e_crop.png"
+    },
+    {
+        "key": "d_d",
+        "char": "d",
+        "x": 1520,
+        "y": 547,
+        "w": 131,
+        "h": 148,
+        "file": "d_d_crop.png"
+    },
+    {
+        "key": "d_e",
+        "char": "e",
+        "x": 1651,
+        "y": 547,
+        "w": 85,
+        "h": 148,
+        "file": "d_e_crop.png"
+    },
+    {
+        "key": "d_s",
+        "char": "s",
+        "x": 1736,
+        "y": 607,
+        "w": 77,
+        "h": 88,
+        "file": "d_s_crop.png"
+    },
+    {
+        "key": "d_i",
+        "char": "i",
+        "x": 1813,
+        "y": 568,
+        "w": 68,
+        "h": 170,
+        "file": "d_i_crop.png"
+    },
+    {
+        "key": "d_g",
+        "char": "g",
+        "x": 1881,
+        "y": 607,
+        "w": 90,
+        "h": 130,
+        "file": "d_g_crop.png"
+    },
+    {
+        "key": "d_n",
+        "char": "n",
+        "x": 1971,
+        "y": 607,
+        "w": 97,
+        "h": 85,
+        "file": "d_n_crop.png"
+    }
+]

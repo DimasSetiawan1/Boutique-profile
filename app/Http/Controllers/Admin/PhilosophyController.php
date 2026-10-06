@@ -139,6 +139,15 @@ class PhilosophyController extends Controller
         return redirect()->route('admin.philosophies.index')->with('success', 'Philosophy item updated successfully.');
     }
 
+    public function show($id)
+    {
+        $philosophy = Philosophy::find($id);
+        if ($philosophy) {
+            return redirect()->route('admin.philosophies.edit', $philosophy->id);
+        }
+        return redirect()->route('admin.philosophies.index')->with('error', 'Item filosofi tidak ditemukan.');
+    }
+
     public function destroy(Philosophy $philosophy)
     {
         if ($philosophy->image_path && File::exists(public_path($philosophy->image_path))) {

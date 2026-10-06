@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ForgotPasswordController;
+use App\Http\Controllers\Admin\BackupController;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,21 +67,22 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Philosophy Items CRUD
-    Route::resource('philosophies', PhilosophyController::class)->except(['show']);
+    Route::resource('philosophies', PhilosophyController::class);
 
     // Services CRUD
-    Route::resource('services', ServiceController::class)->except(['show']);
+    Route::resource('services', ServiceController::class);
 
     // Portfolios CRUD
-    Route::resource('portfolios', PortfolioController::class)->except(['show']);
+    Route::delete('portfolios/image/{id}', [PortfolioController::class, 'deleteImage'])->name('portfolios.deleteImage');
+    Route::resource('portfolios', PortfolioController::class);
 
     // Clients CRUD
-    Route::resource('clients', ClientController::class)->except(['show']);
     Route::delete('clients/product/{id}', [ClientController::class, 'deleteProductImage'])->name('clients.deleteProduct');
     Route::post('clients/product/{id}/dimension', [ClientController::class, 'updateProductDimensionAjax'])->name('clients.updateProductDimension');
+    Route::resource('clients', ClientController::class);
 
     // Team Members CRUD
-    Route::resource('team', TeamController::class)->except(['show']);
+    Route::resource('team', TeamController::class);
 
     // Settings
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
@@ -88,8 +90,22 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     Route::post('/settings/logo', [SettingController::class, 'uploadLogo'])->name('settings.logo');
     Route::post('/settings/philosophy-image', [SettingController::class, 'uploadPhilosophyImage'])->name('settings.philosophy_image');
     Route::post('/settings/philosophy-image/delete', [SettingController::class, 'deletePhilosophyImage'])->name('settings.philosophy_image.delete');
+    Route::post('/settings/hero-media', [SettingController::class, 'updateHeroMedia'])->name('settings.hero_media');
+    Route::post('/settings/hero-media/reset', [SettingController::class, 'resetHeroMedia'])->name('settings.hero_media.reset');
+    Route::post('/settings/hero-media/delete-video', [SettingController::class, 'deleteHeroVideo'])->name('settings.hero_media.delete_video');
+    Route::post('/settings/services-media', [SettingController::class, 'updateServicesMedia'])->name('settings.services_media');
+    Route::post('/settings/services-media/reset', [SettingController::class, 'resetServicesMedia'])->name('settings.services_media.reset');
+    Route::post('/settings/services-media/delete-video', [SettingController::class, 'deleteServicesVideo'])->name('settings.services_media.delete_video');
+    Route::post('/settings/about-media', [SettingController::class, 'updateAboutMedia'])->name('settings.about_media');
+    Route::post('/settings/about-media/reset', [SettingController::class, 'resetAboutMedia'])->name('settings.about_media.reset');
+    Route::post('/settings/about-media/delete-video', [SettingController::class, 'deleteAboutVideo'])->name('settings.about_media.delete_video');
     Route::post('/settings/fix-permissions', [SettingController::class, 'fixPermissions'])->name('settings.fix_permissions');
     Route::post('/settings/contacts/save', [SettingController::class, 'saveContactsAjax'])->name('settings.contacts.save');
+
+    // Backup & Restore System
+    Route::get('/backup', [BackupController::class, 'index'])->name('backup.index');
+    Route::get('/backup/download', [BackupController::class, 'downloadBackup'])->name('backup.download');
+    Route::post('/backup/upload', [BackupController::class, 'uploadBackup'])->name('backup.upload');
 
 
     // Inbox Messages

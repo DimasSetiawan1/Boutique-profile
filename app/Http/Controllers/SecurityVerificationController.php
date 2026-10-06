@@ -125,9 +125,9 @@ class SecurityVerificationController extends Controller
                 ], 403);
             }
 
-            // 7. Time-Gate Validation: Mencegah bot instant submit
+            // 7. Time-Gate Validation: Mencegah bot instant submit (< 30ms)
             $clientElapsed = (int) ($entropy['elapsed'] ?? 0);
-            if ($clientElapsed < 150 && $tokenAge < 1) {
+            if ($clientElapsed < 30 && $tokenAge < 1 && empty($entropy['moves'])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Respons terlalu cepat. Harap tunggu sesaat dan klik kembali.'

@@ -45,4 +45,12 @@ class Portfolio extends Model
         $locale = app()->getLocale();
         return $this->{"description_{$locale}"} ?? $this->description_en;
     }
+
+    /**
+     * Get the images for the portfolio.
+     */
+    public function images()
+    {
+        return $this->hasMany(PortfolioImage::class);
+    }
 }

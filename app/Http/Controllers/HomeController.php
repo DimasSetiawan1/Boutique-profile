@@ -30,9 +30,9 @@ class HomeController extends Controller
 
         $services = Service::all();
         $team = TeamMember::orderBy('priority', 'asc')->get();
-        $portfolios = Portfolio::all();
+        $portfolios = Portfolio::with('images')->get();
         $philosophies = Philosophy::orderBy('sort_order', 'asc')->get();
-        $clients = Client::all();
+        $clients = Client::with('productImages')->get();
 
         return view('welcome', compact('settings', 'services', 'team', 'portfolios', 'philosophies', 'clients'));
     }

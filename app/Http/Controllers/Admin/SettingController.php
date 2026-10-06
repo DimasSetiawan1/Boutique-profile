@@ -25,7 +25,9 @@ class SettingController extends Controller
             'company_name'            => 'required|string|max:255',
             'address'                 => 'required|string',
             'phone'                   => 'required|string|max:255',
-            'email'                   => 'required|email|max:255',
+            'email'                   => 'nullable|string|max:255',
+            'emails'                  => 'nullable|array',
+            'emails.*'                => 'nullable|string|max:255',
             'npwp'                    => 'required|string|max:255',
             'slogan_main_en'          => 'nullable|string',
             'slogan_main_id'          => 'required|string',
@@ -104,6 +106,34 @@ class SettingController extends Controller
         for ($i = 1; $i <= 4; $i++) {
             unset($validated["contact_person_{$i}_name"], $validated["contact_person_{$i}_phone"]);
         }
+
+        // Process dynamic Company Emails (Tambah / Hapus)
+        $cleanEmails = [];
+        if ($request->has('emails') && is_array($request->input('emails'))) {
+            foreach ($request->input('emails') as $em) {
+                $em = trim((string) $em);
+                if (!empty($em) && filter_var($em, FILTER_VALIDATE_EMAIL)) {
+                    if (!in_array($em, $cleanEmails)) {
+                        $cleanEmails[] = $em;
+                    }
+                }
+            }
+        }
+        if (empty($cleanEmails) && !empty($request->input('email'))) {
+            $em = trim((string) $request->input('email'));
+            if (!empty($em) && filter_var($em, FILTER_VALIDATE_EMAIL)) {
+                $cleanEmails[] = $em;
+            }
+        }
+        if (empty($cleanEmails)) {
+            $cleanEmails = ['info@boutiquedesign.com'];
+        }
+
+        $primaryEmail = $cleanEmails[0];
+        Setting::updateOrCreate(['key' => 'email'], ['value' => $primaryEmail]);
+        Setting::updateOrCreate(['key' => 'company_emails'], ['value' => json_encode($cleanEmails)]);
+
+        unset($validated['emails'], $validated['email']);
 
         foreach ($validated as $key => $value) {
             Setting::updateOrCreate(['key' => $key], ['value' => $value]);
@@ -270,12 +300,407 @@ class SettingController extends Controller
     }
 
     /**
+     * Update Services / Layanan Background Media (Image, Video, Overlay settings).
+     */
+    public function updateServicesMedia(Request $request)
+    {
+        $request->validate([
+            'services_bg_type'         => 'required|in:image,video,default',
+            'services_image'           => 'nullable|file|mimes:jpeg,jpg,png,webp,gif,svg|max:15360',
+            'services_video'           => 'nullable|file|mimes:mp4,webm,ogg,mov,m4v|max:40960',
+            'services_video_url'       => 'nullable|url|max:500',
+            'services_overlay_opacity' => 'nullable|integer|min:0|max:100',
+            'services_overlay_color'   => 'nullable|in:light,dark',
+        ], [
+            'services_image.max' => 'Ukuran file gambar maksimal adalah 15MB.',
+            'services_video.max' => 'Ukuran file video maksimal adalah 40MB. Untuk video dengan resolusi lebih besar, Anda dapat menggunakan kolom URL Video.',
+        ]);
+
+        $destDir = public_path('uploads/services');
+        if (!file_exists($destDir)) {
+            @mkdir($destDir, 0775, true);
+        }
+
+        $bgType = $request->input('services_bg_type', 'image');
+
+        // Handle Image Upload
+        if ($request->hasFile('services_image')) {
+            $file = $request->file('services_image');
+            $filename = 'services_img_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            try {
+                $file->move($destDir, $filename);
+
+                // Remove old custom services image if not the default one
+                $oldImg = Setting::where('key', 'services_bg_image')->first();
+                if ($oldImg && !empty($oldImg->value) && $oldImg->value !== 'uploads/services-bg.jpg' && file_exists(public_path($oldImg->value))) {
+                    @unlink(public_path($oldImg->value));
+                }
+
+                Setting::updateOrCreate(['key' => 'services_bg_image'], ['value' => 'uploads/services/' . $filename]);
+                $bgType = 'image';
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload services image failed: ' . $e->getMessage());
+                return back()->with('services_media_error', 'Gagal mengupload gambar background layanan: ' . $e->getMessage());
+            }
+        }
+
+        // Handle Video Upload
+        if ($request->hasFile('services_video')) {
+            $file = $request->file('services_video');
+            $filename = 'services_vid_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            try {
+                $file->move($destDir, $filename);
+
+                // Remove old custom services video
+                $oldVid = Setting::where('key', 'services_bg_video')->first();
+                if ($oldVid && !empty($oldVid->value) && file_exists(public_path($oldVid->value))) {
+                    @unlink(public_path($oldVid->value));
+                }
+
+                Setting::updateOrCreate(['key' => 'services_bg_video'], ['value' => 'uploads/services/' . $filename]);
+                $bgType = 'video';
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload services video failed: ' . $e->getMessage());
+                return back()->with('services_media_error', 'Gagal mengupload video background layanan: ' . $e->getMessage());
+            }
+        }
+
+        // Handle Video URL
+        if ($request->has('services_video_url')) {
+            $videoUrl = trim((string)$request->input('services_video_url', ''));
+            Setting::updateOrCreate(
+                ['key' => 'services_bg_video_url'],
+                ['value' => $videoUrl]
+            );
+            if (!empty($videoUrl) && !$request->hasFile('services_image')) {
+                if ($request->input('services_bg_type') === 'video') {
+                    $bgType = 'video';
+                }
+            }
+        }
+
+        // Update Overlay Settings
+        if ($request->has('services_overlay_opacity')) {
+            Setting::updateOrCreate(
+                ['key' => 'services_overlay_opacity'],
+                ['value' => (int) $request->input('services_overlay_opacity', 85)]
+            );
+        }
+
+        if ($request->has('services_overlay_color')) {
+            Setting::updateOrCreate(
+                ['key' => 'services_overlay_color'],
+                ['value' => $request->input('services_overlay_color', 'light')]
+            );
+        }
+
+        // Save active background type
+        Setting::updateOrCreate(['key' => 'services_bg_type'], ['value' => $bgType]);
+
+        return back()->with('services_media_success', 'Pengaturan background layanan (gambar/video) berhasil diperbarui!');
+    }
+
+    /**
+     * Reset Services background to default curated image.
+     */
+    public function resetServicesMedia()
+    {
+        Setting::updateOrCreate(['key' => 'services_bg_type'], ['value' => 'image']);
+        Setting::updateOrCreate(['key' => 'services_bg_image'], ['value' => 'uploads/services-bg.jpg']);
+        Setting::updateOrCreate(['key' => 'services_overlay_opacity'], ['value' => '85']);
+        Setting::updateOrCreate(['key' => 'services_overlay_color'], ['value' => 'light']);
+
+        return back()->with('services_media_success', 'Background layanan berhasil direset ke gambar standar percetakan!');
+    }
+
+    /**
+     * Delete uploaded services video.
+     */
+    public function deleteServicesVideo()
+    {
+        $oldVid = Setting::where('key', 'services_bg_video')->first();
+        if ($oldVid && !empty($oldVid->value) && file_exists(public_path($oldVid->value))) {
+            @unlink(public_path($oldVid->value));
+        }
+        Setting::updateOrCreate(['key' => 'services_bg_video'], ['value' => '']);
+        Setting::updateOrCreate(['key' => 'services_bg_video_url'], ['value' => '']);
+        Setting::updateOrCreate(['key' => 'services_bg_type'], ['value' => 'image']);
+
+        return back()->with('services_media_success', 'File video background layanan berhasil dihapus. Mode dialihkan kembali ke gambar.');
+    }
+
+    /**
+     * Update About / Tentang Kami Background Media (Image, Video, Overlay settings).
+     */
+    public function updateAboutMedia(Request $request)
+    {
+        $request->validate([
+            'about_bg_type'         => 'required|in:image,video,default',
+            'about_image'           => 'nullable|file|mimes:jpeg,jpg,png,webp,gif,svg|max:15360',
+            'about_video'           => 'nullable|file|mimes:mp4,webm,ogg,mov,m4v|max:40960',
+            'about_video_url'       => 'nullable|url|max:500',
+            'about_overlay_opacity' => 'nullable|integer|min:0|max:100',
+            'about_overlay_color'   => 'nullable|in:light,dark',
+        ], [
+            'about_image.max' => 'Ukuran file gambar maksimal adalah 15MB.',
+            'about_video.max' => 'Ukuran file video maksimal adalah 40MB. Untuk video dengan resolusi lebih besar, Anda dapat menggunakan kolom URL Video.',
+        ]);
+
+        $destDir = public_path('uploads/about');
+        if (!file_exists($destDir)) {
+            @mkdir($destDir, 0775, true);
+        }
+
+        $bgType = $request->input('about_bg_type', 'image');
+
+        // Handle Image Upload
+        if ($request->hasFile('about_image')) {
+            $file = $request->file('about_image');
+            $filename = 'about_img_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            try {
+                $file->move($destDir, $filename);
+
+                // Remove old custom about image if not the default one
+                $oldImg = Setting::where('key', 'about_bg_image')->first();
+                if ($oldImg && !empty($oldImg->value) && $oldImg->value !== 'uploads/about-bg.jpg' && file_exists(public_path($oldImg->value))) {
+                    @unlink(public_path($oldImg->value));
+                }
+
+                Setting::updateOrCreate(['key' => 'about_bg_image'], ['value' => 'uploads/about/' . $filename]);
+                $bgType = 'image';
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload about image failed: ' . $e->getMessage());
+                return back()->with('about_media_error', 'Gagal mengupload gambar background tentang kami: ' . $e->getMessage());
+            }
+        }
+
+        // Handle Video Upload
+        if ($request->hasFile('about_video')) {
+            $file = $request->file('about_video');
+            $filename = 'about_vid_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            try {
+                $file->move($destDir, $filename);
+
+                // Remove old custom about video
+                $oldVid = Setting::where('key', 'about_bg_video')->first();
+                if ($oldVid && !empty($oldVid->value) && file_exists(public_path($oldVid->value))) {
+                    @unlink(public_path($oldVid->value));
+                }
+
+                Setting::updateOrCreate(['key' => 'about_bg_video'], ['value' => 'uploads/about/' . $filename]);
+                $bgType = 'video';
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload about video failed: ' . $e->getMessage());
+                return back()->with('about_media_error', 'Gagal mengupload video background tentang kami: ' . $e->getMessage());
+            }
+        }
+
+        // Handle Video URL
+        if ($request->has('about_video_url')) {
+            $videoUrl = trim((string)$request->input('about_video_url', ''));
+            Setting::updateOrCreate(
+                ['key' => 'about_bg_video_url'],
+                ['value' => $videoUrl]
+            );
+            if (!empty($videoUrl) && !$request->hasFile('about_image')) {
+                if ($request->input('about_bg_type') === 'video') {
+                    $bgType = 'video';
+                }
+            }
+        }
+
+        // Update Overlay Settings
+        if ($request->has('about_overlay_opacity')) {
+            Setting::updateOrCreate(
+                ['key' => 'about_overlay_opacity'],
+                ['value' => (int) $request->input('about_overlay_opacity', 88)]
+            );
+        }
+
+        if ($request->has('about_overlay_color')) {
+            Setting::updateOrCreate(
+                ['key' => 'about_overlay_color'],
+                ['value' => $request->input('about_overlay_color', 'light')]
+            );
+        }
+
+        // Save active background type
+        Setting::updateOrCreate(['key' => 'about_bg_type'], ['value' => $bgType]);
+
+        return back()->with('about_media_success', 'Pengaturan background Tentang Kami (gambar/video) berhasil diperbarui!');
+    }
+
+    /**
+     * Reset About background to default curated image.
+     */
+    public function resetAboutMedia()
+    {
+        Setting::updateOrCreate(['key' => 'about_bg_type'], ['value' => 'image']);
+        Setting::updateOrCreate(['key' => 'about_bg_image'], ['value' => 'uploads/about-bg.jpg']);
+        Setting::updateOrCreate(['key' => 'about_overlay_opacity'], ['value' => '88']);
+        Setting::updateOrCreate(['key' => 'about_overlay_color'], ['value' => 'light']);
+
+        return back()->with('about_media_success', 'Background Tentang Kami berhasil direset ke gambar standar percetakan!');
+    }
+
+    /**
+     * Delete uploaded about video.
+     */
+    public function deleteAboutVideo()
+    {
+        $oldVid = Setting::where('key', 'about_bg_video')->first();
+        if ($oldVid && !empty($oldVid->value) && file_exists(public_path($oldVid->value))) {
+            @unlink(public_path($oldVid->value));
+        }
+        Setting::updateOrCreate(['key' => 'about_bg_video'], ['value' => '']);
+        Setting::updateOrCreate(['key' => 'about_bg_video_url'], ['value' => '']);
+        Setting::updateOrCreate(['key' => 'about_bg_type'], ['value' => 'image']);
+
+        return back()->with('about_media_success', 'File video background Tentang Kami berhasil dihapus. Mode dialihkan kembali ke gambar.');
+    }
+
+    /**
+     * Update Hero / Beranda Background Media (Image, Video, Overlay settings).
+     */
+    public function updateHeroMedia(Request $request)
+    {
+        $request->validate([
+            'hero_bg_type'         => 'required|in:image,video,default',
+            'hero_image'           => 'nullable|file|mimes:jpeg,jpg,png,webp,gif,svg|max:15360',
+            'hero_video'           => 'nullable|file|mimes:mp4,webm,ogg,mov,m4v|max:40960',
+            'hero_video_url'       => 'nullable|url|max:500',
+            'hero_overlay_opacity' => 'nullable|integer|min:0|max:100',
+            'hero_overlay_color'   => 'nullable|in:light,dark',
+        ], [
+            'hero_image.max' => 'Ukuran file gambar maksimal adalah 15MB.',
+            'hero_video.max' => 'Ukuran file video maksimal adalah 40MB. Untuk video dengan resolusi lebih besar, Anda dapat menggunakan kolom URL Video.',
+        ]);
+
+        $destDir = public_path('uploads/hero');
+        if (!file_exists($destDir)) {
+            @mkdir($destDir, 0775, true);
+        }
+
+        $bgType = $request->input('hero_bg_type', 'image');
+
+        // Handle Image Upload
+        if ($request->hasFile('hero_image')) {
+            $file = $request->file('hero_image');
+            $filename = 'hero_img_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            try {
+                $file->move($destDir, $filename);
+                
+                // Remove old custom hero image if not the default one
+                $oldImg = Setting::where('key', 'hero_bg_image')->first();
+                if ($oldImg && !empty($oldImg->value) && $oldImg->value !== 'uploads/hero-bg.png' && file_exists(public_path($oldImg->value))) {
+                    @unlink(public_path($oldImg->value));
+                }
+
+                Setting::updateOrCreate(['key' => 'hero_bg_image'], ['value' => 'uploads/hero/' . $filename]);
+                $bgType = 'image';
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload hero image failed: ' . $e->getMessage());
+                return back()->with('hero_media_error', 'Gagal mengupload gambar background: ' . $e->getMessage());
+            }
+        }
+
+        // Handle Video Upload
+        if ($request->hasFile('hero_video')) {
+            $file = $request->file('hero_video');
+            $filename = 'hero_vid_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            try {
+                $file->move($destDir, $filename);
+
+                // Remove old custom hero video
+                $oldVid = Setting::where('key', 'hero_bg_video')->first();
+                if ($oldVid && !empty($oldVid->value) && file_exists(public_path($oldVid->value))) {
+                    @unlink(public_path($oldVid->value));
+                }
+
+                Setting::updateOrCreate(['key' => 'hero_bg_video'], ['value' => 'uploads/hero/' . $filename]);
+                $bgType = 'video';
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Upload hero video failed: ' . $e->getMessage());
+                return back()->with('hero_media_error', 'Gagal mengupload video background: ' . $e->getMessage());
+            }
+        }
+
+        // Handle Video URL
+        if ($request->has('hero_video_url')) {
+            $videoUrl = trim((string)$request->input('hero_video_url', ''));
+            Setting::updateOrCreate(
+                ['key' => 'hero_bg_video_url'],
+                ['value' => $videoUrl]
+            );
+            if (!empty($videoUrl) && !$request->hasFile('hero_image')) {
+                // If admin provided a video url and selected video type, keep it video
+                if ($request->input('hero_bg_type') === 'video') {
+                    $bgType = 'video';
+                }
+            }
+        }
+
+        // Update Overlay Settings
+        if ($request->has('hero_overlay_opacity')) {
+            Setting::updateOrCreate(
+                ['key' => 'hero_overlay_opacity'],
+                ['value' => (int) $request->input('hero_overlay_opacity', 82)]
+            );
+        }
+
+        if ($request->has('hero_overlay_color')) {
+            Setting::updateOrCreate(
+                ['key' => 'hero_overlay_color'],
+                ['value' => $request->input('hero_overlay_color', 'light')]
+            );
+        }
+
+        // Save active background type
+        Setting::updateOrCreate(['key' => 'hero_bg_type'], ['value' => $bgType]);
+
+        return back()->with('hero_media_success', 'Pengaturan background beranda (gambar/video) berhasil diperbarui!');
+    }
+
+    /**
+     * Reset Hero background to default curated image.
+     */
+    public function resetHeroMedia()
+    {
+        Setting::updateOrCreate(['key' => 'hero_bg_type'], ['value' => 'image']);
+        Setting::updateOrCreate(['key' => 'hero_bg_image'], ['value' => 'uploads/hero-bg.png']);
+        Setting::updateOrCreate(['key' => 'hero_overlay_opacity'], ['value' => '82']);
+        Setting::updateOrCreate(['key' => 'hero_overlay_color'], ['value' => 'light']);
+
+        return back()->with('hero_media_success', 'Background beranda berhasil direset ke gambar default!');
+    }
+
+    /**
+     * Delete uploaded hero video.
+     */
+    public function deleteHeroVideo()
+    {
+        $oldVid = Setting::where('key', 'hero_bg_video')->first();
+        if ($oldVid && !empty($oldVid->value) && file_exists(public_path($oldVid->value))) {
+            @unlink(public_path($oldVid->value));
+        }
+        Setting::updateOrCreate(['key' => 'hero_bg_video'], ['value' => '']);
+        Setting::updateOrCreate(['key' => 'hero_bg_video_url'], ['value' => '']);
+        Setting::updateOrCreate(['key' => 'hero_bg_type'], ['value' => 'image']);
+
+        return back()->with('hero_media_success', 'File video background berhasil dihapus. Mode background otomatis dialihkan ke gambar.');
+    }
+
+    /**
      * Fix upload and storage directory permissions directly from the admin dashboard.
      */
     public function fixPermissions()
     {
         $dirs = [
             public_path('uploads'),
+            public_path('uploads/hero'),
+            public_path('uploads/about'),
+            public_path('uploads/services'),
+            public_path('uploads/settings'),
             public_path('uploads/team'),
             public_path('uploads/philosophy'),
             public_path('uploads/portfolio'),
@@ -283,6 +708,8 @@ class SettingController extends Controller
             public_path('uploads/clients/products'),
             storage_path(),
             storage_path('app'),
+            storage_path('app/public'),
+            storage_path('app/temp_backups'),
             storage_path('framework'),
             storage_path('framework/cache'),
             storage_path('framework/sessions'),
@@ -322,9 +749,9 @@ class SettingController extends Controller
         }
 
         if (empty($stillFailed)) {
-            return back()->with('success', 'Semua folder upload (team, clients, philosophy, portfolio) berhasil diperbaiki dan siap digunakan (Writable)!');
+            return back()->with('success', 'Semua folder upload dan storage sistem berhasil diperbaiki dan siap digunakan (Writable)!');
         } else {
-            return back()->with('error', 'Sebagian folder belum bisa ditulis otomatis oleh web server: ' . implode(', ', $stillFailed) . '. Harap jalankan perintah di terminal server: sudo chmod -R 775 /var/www/Boutique-profile/public/uploads');
+            return back()->with('error', 'Sebagian folder belum bisa ditulis otomatis oleh web server: ' . implode(', ', $stillFailed) . '. Harap jalankan perintah di terminal server hosting: sudo chmod -R 775 ' . public_path('uploads') . ' ' . storage_path());
         }
     }
 

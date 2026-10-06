@@ -30,6 +30,10 @@ class FixPermissionsCommand extends Command
 
         $directories = [
             public_path('uploads'),
+            public_path('uploads/hero'),
+            public_path('uploads/about'),
+            public_path('uploads/services'),
+            public_path('uploads/settings'),
             public_path('uploads/team'),
             public_path('uploads/philosophy'),
             public_path('uploads/portfolio'),
@@ -38,6 +42,7 @@ class FixPermissionsCommand extends Command
             storage_path(),
             storage_path('app'),
             storage_path('app/public'),
+            storage_path('app/temp_backups'),
             storage_path('framework'),
             storage_path('framework/cache'),
             storage_path('framework/cache/data'),

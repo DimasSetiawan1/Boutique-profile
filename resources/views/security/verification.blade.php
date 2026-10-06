@@ -41,9 +41,11 @@
             color: var(--text-dark);
             position: relative;
             overflow-x: hidden;
+            perspective: 1400px;
+            perspective-origin: 50% 35%;
         }
 
-        /* Ambient subtle backdrop elements */
+        /* Ambient subtle backdrop elements (Static GPU friendly) */
         .ambient-circle-1 {
             position: absolute;
             width: 500px;
@@ -68,30 +70,75 @@
             filter: blur(50px);
         }
 
+        /* Floating Paper Popup Card (Ultra-Fast 0.6s, Zero Delay, 60-120fps) */
         .challenge-container {
             position: relative;
             z-index: 10;
             width: 100%;
             max-width: 440px;
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.8);
+            background: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.95);
             border-radius: 24px;
             padding: 40px 32px;
-            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.18), 0 4px 16px rgba(0, 0, 0, 0.04);
             text-align: center;
-            animation: fadeInCard 0.5s ease-out;
+            transform-origin: 50% 15%;
+            will-change: transform, opacity;
+            animation: paperFloatSway 0.65s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
         }
 
-        @keyframes fadeInCard {
-            from {
+        /* Subtle paper sheen reflection */
+        .challenge-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 55%);
+            pointer-events: none;
+        }
+
+        /* Animasi Kertas Melayang Cepat & Mendarat Mulus di Tengah */
+        @keyframes paperFloatSway {
+            0% {
                 opacity: 0;
-                transform: translateY(16px);
+                transform: translate3d(18px, -110px, 0) rotate(6deg) scale(0.96);
             }
-            to {
+            45% {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translate3d(-10px, -20px, 0) rotate(-3deg) scale(1.01);
+            }
+            75% {
+                transform: translate3d(4px, 3px, 0) rotate(1deg) scale(0.998);
+            }
+            100% {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+            }
+        }
+
+        /* Responsif Layar Kecil (Mobile) */
+        @media (max-width: 576px) {
+            .challenge-container {
+                padding: 32px 20px;
+                animation: paperFloatSwayMobile 0.65s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+            }
+        }
+
+        @keyframes paperFloatSwayMobile {
+            0% {
+                opacity: 0;
+                transform: translate3d(10px, -90px, 0) rotate(4deg) scale(0.96);
+            }
+            45% {
+                opacity: 1;
+                transform: translate3d(-6px, -15px, 0) rotate(-2deg) scale(1.01);
+            }
+            75% {
+                transform: translate3d(2px, 2px, 0) rotate(0.8deg) scale(0.998);
+            }
+            100% {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
             }
         }
 
@@ -452,49 +499,48 @@
                     }
                 };
 
-                // Authentic Google reCAPTCHA feels natural with 650ms inspection time
-                setTimeout(function () {
-                    fetch("{{ route('security.verify') }}", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Accept": "application/json",
-                            "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                        },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            isVerified = true;
-                            spinner.style.display = 'none';
-                            checkbox.classList.add('checked');
-                            checkmark.style.display = 'block';
-                            checkbox.style.borderColor = '#c1c1c1';
-                            label.textContent = 'Saya bukan robot';
-                            showStatus('Verifikasi berhasil! Mengalihkan ke Company Profile...', 'success');
+                // Instant verification request (Fast & responsive)
+                fetch("{{ route('security.verify') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        isVerified = true;
+                        spinner.style.display = 'none';
+                        checkbox.classList.add('checked');
+                        checkmark.style.display = 'block';
+                        checkbox.style.borderColor = '#c1c1c1';
+                        label.textContent = 'Saya bukan robot';
+                        showStatus('Verifikasi berhasil! Mengalihkan ke Company Profile...', 'success');
 
-                            setTimeout(function () {
-                                window.location.href = data.redirect || "{{ route('home') }}";
-                            }, 500);
-                        } else {
-                            isVerifying = false;
-                            spinner.style.display = 'none';
-                            clickArea.style.pointerEvents = 'auto';
-                            checkbox.style.borderColor = '#ef4444';
-                            label.textContent = 'Saya bukan robot';
-                            showStatus(data.message || 'Verifikasi tidak berhasil. Silakan coba kembali.', 'error');
-                        }
-                    })
-                    .catch(function () {
+                        // Quick snappy redirect (80ms to show green checkmark)
+                        setTimeout(function () {
+                            window.location.href = data.redirect || "{{ route('home') }}";
+                        }, 80);
+                    } else {
                         isVerifying = false;
                         spinner.style.display = 'none';
                         clickArea.style.pointerEvents = 'auto';
                         checkbox.style.borderColor = '#ef4444';
                         label.textContent = 'Saya bukan robot';
-                        showStatus('Gagal menghubungkan ke server verifikasi. Harap muat ulang halaman.', 'error');
-                    });
-                }, 650);
+                        showStatus(data.message || 'Verifikasi tidak berhasil. Silakan coba kembali.', 'error');
+                    }
+                })
+                .catch(function () {
+                    isVerifying = false;
+                    spinner.style.display = 'none';
+                    clickArea.style.pointerEvents = 'auto';
+                    checkbox.style.borderColor = '#ef4444';
+                    label.textContent = 'Saya bukan robot';
+                    showStatus('Gagal menghubungkan ke server verifikasi. Harap muat ulang halaman.', 'error');
+                });
             }
 
             clickArea.addEventListener('click', performVerification);

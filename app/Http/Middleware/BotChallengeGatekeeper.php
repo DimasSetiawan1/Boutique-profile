@@ -29,6 +29,11 @@ class BotChallengeGatekeeper
      */
     public function handle(Request $request, Closure $next)
     {
+        // 0. Bypass in testing environment
+        if (app()->environment('testing')) {
+            return $next($request);
+        }
+
         // 1. Check if route is exempted
         foreach ($this->except as $pattern) {
             if ($request->is($pattern)) {

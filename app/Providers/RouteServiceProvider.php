@@ -70,9 +70,9 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->ip());
         });
 
-        // Anti-Flooding for live email & phone checks
+        // Anti-Flooding for live verification, email & phone checks
         RateLimiter::for('live-check', function (Request $request) {
-            return Limit::perMinute(20)->by($request->ip());
+            return Limit::perMinute(120)->by($request->ip());
         });
 
         // Anti-Brute Force for OTP verification

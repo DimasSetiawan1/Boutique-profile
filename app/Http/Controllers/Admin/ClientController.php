@@ -168,6 +168,15 @@ class ClientController extends Controller
         return redirect()->route('admin.clients.index')->with('success', 'Client updated successfully.');
     }
 
+    public function show($id)
+    {
+        $client = Client::find($id);
+        if ($client) {
+            return redirect()->route('admin.clients.edit', $client->id);
+        }
+        return redirect()->route('admin.clients.index')->with('error', 'Klien tidak ditemukan.');
+    }
+
     public function destroy(Client $client)
     {
         if ($client->logo && File::exists(public_path($client->logo))) {

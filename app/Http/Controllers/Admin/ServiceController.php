@@ -73,6 +73,15 @@ class ServiceController extends Controller
         return redirect()->route('admin.services.index')->with('success', 'Service updated successfully.');
     }
 
+    public function show($id)
+    {
+        $service = Service::find($id);
+        if ($service) {
+            return redirect()->route('admin.services.edit', $service->id);
+        }
+        return redirect()->route('admin.services.index')->with('error', 'Layanan tidak ditemukan.');
+    }
+
     public function destroy(Service $service)
     {
         $service->delete();

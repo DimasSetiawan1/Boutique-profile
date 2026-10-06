@@ -413,6 +413,12 @@
                 </a>
             </li>
             <li>
+                <a href="{{ route('admin.backup.index') }}" class="sidebar-link {{ Route::is('admin.backup.*') ? 'active' : '' }}">
+                    <i class="bi bi-database-down"></i>
+                    <span>Backup & Restore</span>
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('admin.profile.index') }}" class="sidebar-link {{ Route::is('admin.profile.*') ? 'active' : '' }}">
                     <i class="bi bi-person-gear"></i>
                     <span>Profile & Password</span>

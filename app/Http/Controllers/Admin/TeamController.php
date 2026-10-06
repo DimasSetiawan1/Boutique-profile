@@ -73,6 +73,11 @@ class TeamController extends Controller
         return redirect()->route('admin.team.index')->with('success', 'Team member added successfully.');
     }
 
+    public function show($id)
+    {
+        return redirect()->route('admin.team.edit', $id);
+    }
+
     public function edit(TeamMember $team)
     {
         // Route model binding matches $team
