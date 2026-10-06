@@ -926,24 +926,13 @@
 
         /* ================= PORTFOLIO ONE-BY-ONE STAGGERED ANIMATION (BOUTIQUE LOGO STYLE) ================= */
         .portfolio-animate-item {
-            opacity: 0;
-            transform: translateY(35px) scale(0.92);
-            transition: opacity 0.65s cubic-bezier(0.25, 1.2, 0.4, 1), transform 0.65s cubic-bezier(0.25, 1.2, 0.4, 1);
             will-change: opacity, transform;
         }
 
         .portfolio-animate-item.animate-in,
         .portfolio-animate-item.revealed {
-            opacity: 1 !important;
-            transform: translateY(0) scale(1) !important;
-        }
-
-        /* Di device HP / layar mobile, pastikan portofolio selalu tampil 100% tanpa risiko tersangkut animasi */
-        @media (max-width: 991.98px) {
-            .portfolio-animate-item {
-                opacity: 1 !important;
-                transform: none !important;
-            }
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale(1);
         }
 
         /* ================= PORTFOLIO IMAGE ANIMATIONS (BOUTIQUE LOGO STYLE) ================= */
@@ -3731,32 +3720,21 @@
                                     entry.target.style.transitionDelay = `${delay}ms`;
                                 }
                                 entry.target.classList.add('revealed');
-                                // Sekali elemen terlihat di layar, biarkan tetap tampil stabil di semua device (PC, Laptop, HP)
-                                scrollRevealObserver.unobserve(entry.target);
+                            } else {
+                                // Reset saat elemen keluar viewport (baik ke atas maupun ke bawah)
+                                // Berkat transition: none saat reset, proses reset instan 0ms tanpa lag di latar belakang.
+                                // Sehingga setiap kali user berada di tampilan ini (baik scroll turun atau naik), animasi selalu diputar ulang!
+                                entry.target.classList.remove('revealed');
+                                entry.target.style.transitionDelay = '';
                             }
                         });
                     }, {
                         root: null,
-                        threshold: 0.02,
-                        rootMargin: '30px 0px 30px 0px'
+                        threshold: 0.05,
+                        rootMargin: '0px 0px -20px 0px'
                     });
 
                     revealElements.forEach(el => scrollRevealObserver.observe(el));
-
-                    // Langsung jalankan animasi untuk semua elemen yang sudah ada di viewport saat pertama kali halaman terbuka
-                    requestAnimationFrame(() => {
-                        revealElements.forEach(el => {
-                            const rect = el.getBoundingClientRect();
-                            if (rect.top < window.innerHeight && rect.bottom > 0) {
-                                el.classList.add('revealed');
-                            }
-                        });
-                    });
-
-                    // Jaminan universal (Failsafe): Pastikan semua konten 100% muncul dan terbaca di semua device/browser tanpa terkecuali
-                    setTimeout(() => {
-                        revealElements.forEach(el => el.classList.add('revealed'));
-                    }, 1000);
                 } else {
                     revealElements.forEach(el => el.classList.add('revealed'));
                 }
