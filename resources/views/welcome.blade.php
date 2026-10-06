@@ -3731,31 +3731,32 @@
                                     entry.target.style.transitionDelay = `${delay}ms`;
                                 }
                                 entry.target.classList.add('revealed');
-                            } else {
-                                // Reset saat elemen keluar viewport (baik ke atas maupun ke bawah)
-                                // Berkat transition: none saat reset, proses reset instan 0ms tanpa lag di latar belakang.
-                                // Sehingga setiap kali user berada di tampilan ini (baik scroll turun atau naik), animasi selalu diputar ulang!
-                                entry.target.classList.remove('revealed');
-                                entry.target.style.transitionDelay = '';
+                                // Sekali elemen terlihat di layar, biarkan tetap tampil stabil di semua device (PC, Laptop, HP)
+                                scrollRevealObserver.unobserve(entry.target);
                             }
                         });
                     }, {
                         root: null,
                         threshold: 0.02,
-                        rootMargin: '25px 0px 25px 0px'
+                        rootMargin: '30px 0px 30px 0px'
                     });
 
                     revealElements.forEach(el => scrollRevealObserver.observe(el));
 
-                    // Langsung jalankan animasi untuk semua elemen yang berada di layar laptop saat pertama kali dimuat
-                    setTimeout(() => {
+                    // Langsung jalankan animasi untuk semua elemen yang sudah ada di viewport saat pertama kali halaman terbuka
+                    requestAnimationFrame(() => {
                         revealElements.forEach(el => {
                             const rect = el.getBoundingClientRect();
                             if (rect.top < window.innerHeight && rect.bottom > 0) {
                                 el.classList.add('revealed');
                             }
                         });
-                    }, 80);
+                    });
+
+                    // Jaminan universal (Failsafe): Pastikan semua konten 100% muncul dan terbaca di semua device/browser tanpa terkecuali
+                    setTimeout(() => {
+                        revealElements.forEach(el => el.classList.add('revealed'));
+                    }, 1000);
                 } else {
                     revealElements.forEach(el => el.classList.add('revealed'));
                 }
