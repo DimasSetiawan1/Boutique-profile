@@ -3761,23 +3761,32 @@
                     revealElements.forEach(el => el.classList.add('revealed'));
                 }
 
-                // Smooth re-reveal saat user klik menu navigasi (misal: #about, #philosophy, #team, #portfolio)
-                document.querySelectorAll('.navbar-nav a[href^="#"], a[href="#team"], a[href="#portfolio"]').forEach(navAnchor => {
+                // Smooth re-reveal saat user klik menu navigasi atau tombol tautan (Jalan Tengah: putar ulang otomatis saat menu diklik)
+                document.querySelectorAll('a[href^="#"]').forEach(navAnchor => {
                     navAnchor.addEventListener('click', function() {
                         const targetHash = this.getAttribute('href');
-                        if (targetHash && targetHash !== '#') {
-                            const targetSection = document.querySelector(targetHash);
-                            if (targetSection) {
-                                const sectionReveals = targetSection.querySelectorAll(
-                                    '.reveal, .reveal-up, .reveal-down, .reveal-left, .reveal-right, .reveal-zoom, .reveal-fade'
-                                );
-                                if (sectionReveals.length > 0) {
-                                    sectionReveals.forEach(el => el.classList.remove('revealed'));
-                                    setTimeout(() => {
-                                        sectionReveals.forEach(el => el.classList.add('revealed'));
-                                    }, 200);
+                        if (targetHash && targetHash !== '#' && targetHash.length > 1) {
+                            try {
+                                const targetSection = document.querySelector(targetHash);
+                                if (targetSection) {
+                                    const sectionReveals = targetSection.querySelectorAll(
+                                        '.reveal, .reveal-up, .reveal-down, .reveal-left, .reveal-right, .reveal-zoom, .reveal-fade'
+                                    );
+                                    if (sectionReveals.length > 0) {
+                                        sectionReveals.forEach(el => {
+                                            el.classList.remove('revealed');
+                                            el.style.transitionDelay = '0s';
+                                        });
+                                        setTimeout(() => {
+                                            sectionReveals.forEach(el => {
+                                                const delay = el.getAttribute('data-reveal-delay');
+                                                el.style.transitionDelay = delay ? `${delay}ms` : '';
+                                                el.classList.add('revealed');
+                                            });
+                                        }, 180);
+                                    }
                                 }
-                            }
+                            } catch (e) {}
                         }
                     });
                 });
