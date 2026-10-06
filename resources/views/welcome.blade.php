@@ -103,7 +103,7 @@
             transition: var(--transition);
             position: relative;
         }
-        .nav-link::after {
+        .nav-link:not(.dropdown-toggle)::after {
             content: '';
             position: absolute;
             bottom: -5px;
@@ -114,7 +114,7 @@
             transition: var(--transition);
             transform: translateX(-50%);
         }
-        .nav-link:hover::after, .nav-link.active::after {
+        .nav-link:not(.dropdown-toggle):hover::after, .nav-link:not(.dropdown-toggle).active::after {
             width: 80%;
         }
 
@@ -3649,32 +3649,90 @@
                 }
             }
 
-            // ================= ZERO-REFLOW ACTIVE NAV LINK TRACKER =================
-            const navLinks = document.querySelectorAll('.nav-link');
-            const navSections = document.querySelectorAll('header, section[id]');
-            if ('IntersectionObserver' in window && navSections.length > 0) {
-                const navSpyObserver = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const id = entry.target.getAttribute('id');
-                            if (id) {
-                                navLinks.forEach(link => {
-                                    if (link.getAttribute('href') === `#${id}`) {
-                                        link.classList.add('active');
-                                    } else {
-                                        link.classList.remove('active');
-                                    }
-                                });
-                            }
-                        }
-                    });
-                }, {
-                    root: null,
-                    threshold: 0.15,
-                    rootMargin: '-20% 0px -55% 0px'
-                });
-                navSections.forEach(s => navSpyObserver.observe(s));
+            // ================= REAL-TIME DYNAMIC SCROLLSPY ACTIVE NAV LINK TRACKER =================
+            const navMenuLinks = Array.from(document.querySelectorAll('.navbar-nav .nav-link[href^="#"]:not([href="#"])'));
+            const trackedSections = Array.from(document.querySelectorAll('header#home, section[id]')).filter(Boolean);
+
+            let isNavClickLocked = false;
+            let navClickLockTimer = null;
+
+            function updateScrollspyActive() {
+                if (isNavClickLocked) return;
+
+                const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+                const windowHeight = window.innerHeight;
+                const docHeight = document.documentElement.scrollHeight;
+
+                // 1. Jika di paling atas halaman (kurang dari 180px)
+                if (scrollY < 180) {
+                    setNavActive('home');
+                    return;
+                }
+
+                // 2. Jika sudah scroll sampai paling bawah halaman (bagian Hubungi Kami / footer)
+                if (scrollY + windowHeight >= docHeight - 80) {
+                    setNavActive('contact');
+                    return;
+                }
+
+                // 3. Cari section mana yang posisinya sedang dilewati header
+                const triggerY = scrollY + 160;
+                let activeId = 'home';
+
+                for (let i = 0; i < trackedSections.length; i++) {
+                    const sec = trackedSections[i];
+                    if (sec.offsetTop <= triggerY) {
+                        activeId = sec.getAttribute('id');
+                    }
+                }
+
+                if (activeId) {
+                    setNavActive(activeId);
+                }
             }
+
+            function setNavActive(targetId) {
+                navMenuLinks.forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (href === `#${targetId}`) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+            }
+
+            // Jalankan saat scroll dengan performa tinggi (60fps requestAnimationFrame)
+            let isScrollTickRunning = false;
+            window.addEventListener('scroll', function() {
+                if (!isScrollTickRunning) {
+                    requestAnimationFrame(function() {
+                        updateScrollspyActive();
+                        isScrollTickRunning = false;
+                    });
+                    isScrollTickRunning = true;
+                }
+            }, { passive: true });
+
+            // Jalankan langsung saat halaman pertama kali dibuka
+            updateScrollspyActive();
+
+            // Saat link navigasi diklik: langsung pindahkan garis merah seketika ke menu yang diklik
+            navMenuLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    const href = this.getAttribute('href');
+                    if (href && href.startsWith('#') && href.length > 1) {
+                        const targetId = href.substring(1);
+                        setNavActive(targetId);
+                        isNavClickLocked = true;
+                        clearTimeout(navClickLockTimer);
+                        navClickLockTimer = setTimeout(() => {
+                            isNavClickLocked = false;
+                            updateScrollspyActive();
+                        }, 900);
+                    }
+                });
+            });
 
             // ================= PORTFOLIO FILTERING =================
             const filterBtns = document.querySelectorAll('.portfolio-filter-btn');
