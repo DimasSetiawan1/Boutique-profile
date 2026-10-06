@@ -932,9 +932,18 @@
             will-change: opacity, transform;
         }
 
-        .portfolio-animate-item.animate-in {
-            opacity: 1;
-            transform: translateY(0) scale(1);
+        .portfolio-animate-item.animate-in,
+        .portfolio-animate-item.revealed {
+            opacity: 1 !important;
+            transform: translateY(0) scale(1) !important;
+        }
+
+        /* Di device HP / layar mobile, pastikan portofolio selalu tampil 100% tanpa risiko tersangkut animasi */
+        @media (max-width: 991.98px) {
+            .portfolio-animate-item {
+                opacity: 1 !important;
+                transform: none !important;
+            }
         }
 
         /* ================= PORTFOLIO IMAGE ANIMATIONS (BOUTIQUE LOGO STYLE) ================= */
@@ -3050,7 +3059,7 @@
                         $hasImages = $images->count() > 0;
                         $firstImage = $hasImages ? $images->first()->image_path : null;
                     @endphp
-                    <div class="col-md-6 col-lg-4 portfolio-item-col portfolio-animate-item reveal-up reveal-delay-{{ ($loop->index % 3) + 1 }}" data-category="{{ \Illuminate\Support\Str::slug($work->title_en ?: $work->title_id) }}">
+                    <div class="col-12 col-md-6 col-lg-4 portfolio-item-col portfolio-animate-item reveal-up reveal-delay-{{ ($loop->index % 3) + 1 }}" data-category="{{ \Illuminate\Support\Str::slug($work->title_en ?: $work->title_id) }}">
                         <div class="portfolio-card {{ $hasImages ? 'has-lightbox' : '' }}"
                              role="button"
                              tabindex="0"
