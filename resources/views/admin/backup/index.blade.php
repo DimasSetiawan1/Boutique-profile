@@ -100,6 +100,37 @@
         </div>
     </div>
 
+    {{-- Fast Git Sync Banner (One-Click Production Data Synchronization) --}}
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 text-white position-relative overflow-hidden"
+         style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-left: 5px solid #10b981 !important;">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-success px-3 py-1.5 rounded-pill fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                        <i class="bi bi-cloud-arrow-down-fill me-1"></i> Sinkronisasi Database Otomatis
+                    </span>
+                    <span class="badge bg-secondary-subtle text-light rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">Bebas Upload File</span>
+                </div>
+                <h4 class="fw-bold mb-1 text-white">Terapkan Data Terbaru Hasil Commit Git</h4>
+                <p class="text-white-50 small mb-0" style="font-size: 0.85rem; line-height: 1.6;">
+                    Setelah melakukan <code>git pull</code> di hosting, klik tombol di sebelah kanan untuk langsung menyinkronkan seluruh database hosting (Portofolio, Pengaturan, Tim, Layanan, Klien) dengan <strong>data terbaru hasil commit</strong> secara instan dalam 1 detik tanpa perlu upload file backup!
+                </p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <form action="{{ route('admin.backup.sync_latest') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menyinkronkan database hosting dengan data terbaru hasil commit Git?');">
+                    @csrf
+                    <button type="submit" class="btn btn-success btn-lg rounded-pill px-4 py-3 fw-bold shadow d-inline-flex align-items-center gap-2 w-100 justify-content-center" style="font-size: 0.95rem;">
+                        <i class="bi bi-arrow-repeat fs-5"></i>
+                        <span>Sinkronkan Data Sekarang (1-Klik)</span>
+                    </button>
+                </form>
+                <small class="text-white-50 d-block mt-2 text-center text-lg-end" style="font-size: 0.72rem;">
+                    <i class="bi bi-shield-check text-success me-1"></i> Menggunakan Seeder Produksi Resmi
+                </small>
+            </div>
+        </div>
+    </div>
+
     {{-- Main Action Cards: Unduh & Upload --}}
     <div class="row g-4">
         

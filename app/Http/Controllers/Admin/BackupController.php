@@ -413,4 +413,25 @@ class BackupController extends Controller
 
         return back()->with('success', $successMsg);
     }
+
+    /**
+     * One-click synchronize live database with the latest Git ProductionDataSeeder.
+     */
+    public function syncLatestProductionData(Request $request)
+    {
+        @set_time_limit(300);
+        try {
+            Artisan::call('db:seed', [
+                '--class' => 'ProductionDataSeeder',
+                '--force' => true,
+            ]);
+            Artisan::call('cache:clear');
+            Artisan::call('view:clear');
+
+            $successMsg = 'SUKSES! Seluruh database hosting kini 100% diperbarui dan sinkron dengan data commit Git terbaru!';
+            return back()->with('success', $successMsg);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal menyinkronkan data: ' . $e->getMessage());
+        }
+    }
 }

@@ -107,6 +107,8 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     Route::get('/backup/download', [BackupController::class, 'downloadBackup'])->name('backup.download');
     Route::post('/backup/sync-process', [BackupController::class, 'uploadBackup'])->name('backup.upload');
     Route::post('/backup/upload', [BackupController::class, 'uploadBackup']); // Fallback alias
+    Route::post('/backup/sync-latest-data', [BackupController::class, 'syncLatestProductionData'])->name('backup.sync_latest');
+    Route::get('/backup/sync-latest-data', [BackupController::class, 'syncLatestProductionData'])->name('backup.apply_latest');
 
 
     // Inbox Messages
