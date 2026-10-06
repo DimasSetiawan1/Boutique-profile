@@ -27,6 +27,19 @@ Route::get('/security/verification', [\App\Http\Controllers\SecurityVerification
 Route::redirect('/security/challenge', '/security/verification')->name('security.challenge');
 Route::post('/security/verify', [\App\Http\Controllers\SecurityVerificationController::class, 'verifyHuman'])->middleware('throttle:live-check')->name('security.verify');
 
+// Cek status deploy: memastikan kode di hosting sudah terbaru & isi database sama dengan localhost
+Route::get('/deploy-check', function () {
+    return response()->json([
+        'code_version'     => 'b33c1d0+sync',
+        'portfolios'       => \Illuminate\Support\Facades\DB::table('portfolios')->count(),
+        'portfolio_images' => \Illuminate\Support\Facades\DB::table('portfolio_images')->count(),
+        'team_members'     => \Illuminate\Support\Facades\DB::table('team_members')->count(),
+        'clients'          => \Illuminate\Support\Facades\DB::table('clients')->count(),
+        'settings'         => \Illuminate\Support\Facades\DB::table('settings')->count(),
+        'latest_portfolio' => \Illuminate\Support\Facades\DB::table('portfolios')->max('updated_at'),
+    ]);
+})->middleware('throttle:30,1');
+
 // Public Frontend Protected by Human Verification ("Saya bukan robot")
 Route::middleware(['bot.challenge'])->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
