@@ -173,9 +173,16 @@
                     <h4 class="h5 fw-bold mb-2" style="color:var(--text-dark);">
                         Upload & Pulihkan Data Backup
                     </h4>
-                    <p class="text-secondary small mb-3">
+                    <p class="text-secondary small mb-2">
                         Pilih file backup (<strong>.zip</strong> atau <strong>.json</strong>) yang telah diunduh sebelumnya. Sistem akan otomatis mengisi dan menyinkronkan seluruh company profile tanpa Anda harus menginput ulang satu per satu.
                     </p>
+
+                    <div class="p-2.5 px-3 rounded-3 mb-3 d-flex align-items-center gap-2" style="background: #eff6ff; border: 1px solid #bfdbfe; font-size: 0.8rem;">
+                        <i class="bi bi-lightning-charge-fill text-primary flex-shrink-0 fs-6"></i>
+                        <span class="text-primary-emphasis">
+                            <strong>Tips Instan:</strong> Karena file gambar/media sudah ter-pull di hosting dari Git, gunakan file <strong>.json (Database Saja)</strong> agar pemulihan selesai dalam <strong>1 detik</strong> tanpa risiko loading lama!
+                        </span>
+                    </div>
 
                     <form action="{{ route('admin.backup.upload') }}" method="POST" enctype="multipart/form-data" id="restoreBackupForm">
                         @csrf
@@ -335,13 +342,34 @@
 {{-- LOADING OVERLAY SAAT PROSES RESTORE --}}
 <div id="restoreLoadingOverlay"
      class="d-none position-fixed top-0 start-0 w-100 h-100 align-items-center justify-content-center"
-     style="background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); z-index: 99999;">
-    <div class="text-center text-white p-4">
-        <div class="spinner-border text-danger mb-3" style="width: 3.5rem; height: 3.5rem;" role="status">
+     style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(10px); z-index: 99999;">
+    <div class="text-center text-white p-4" style="max-width: 520px; width: 92%;">
+        {{-- Spinner --}}
+        <div class="spinner-border text-danger mb-3" id="restoreSpinner" style="width: 3.5rem; height: 3.5rem;" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-        <h4 class="fw-bold mb-2">Sedang Memulihkan Data Sistem...</h4>
-        <p class="text-white-50 small mb-0">Harap jangan menutup atau me-refresh halaman ini selama proses berlangsung.</p>
+        
+        <h4 class="fw-bold mb-2" id="restoreTitle">Sedang Mengunggah File Backup...</h4>
+        <p class="text-white-50 small mb-3" id="restoreSubtitle">Harap jangan menutup atau me-refresh halaman ini selama proses berlangsung.</p>
+
+        {{-- Progress Bar --}}
+        <div class="progress mb-2 d-none" id="restoreProgressBarContainer" style="height: 12px; background: rgba(255,255,255,0.2); border-radius: 6px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" id="restoreProgressBar" role="progressbar" style="width: 0%"></div>
+        </div>
+        <div class="d-flex justify-content-between text-white-50 small mb-3 d-none" id="restoreProgressDetails" style="font-size: 0.75rem;">
+            <span id="restoreProgressPercent" class="fw-bold text-white">0%</span>
+            <span id="restoreProgressBytes">0 MB / 0 MB</span>
+        </div>
+
+        {{-- Alert Error jika gagal --}}
+        <div class="alert alert-danger text-start d-none py-2 px-3 small rounded-3 mb-3 border-0" id="restoreErrorAlert" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-left: 4px solid #ef4444 !important;"></div>
+
+        {{-- Action Buttons --}}
+        <div class="mt-2">
+            <button type="button" class="btn btn-outline-light rounded-pill px-4 btn-sm d-none fw-bold" id="btnCancelRestoreOverlay">
+                <i class="bi bi-x-circle me-1"></i> Tutup & Coba Lagi
+            </button>
+        </div>
     </div>
 </div>
 
@@ -392,6 +420,17 @@
         const restoreForm = document.getElementById('restoreBackupForm');
         const overlay = document.getElementById('restoreLoadingOverlay');
 
+        const restoreSpinner = document.getElementById('restoreSpinner');
+        const restoreTitle = document.getElementById('restoreTitle');
+        const restoreSubtitle = document.getElementById('restoreSubtitle');
+        const progressBarContainer = document.getElementById('restoreProgressBarContainer');
+        const progressBar = document.getElementById('restoreProgressBar');
+        const progressDetails = document.getElementById('restoreProgressDetails');
+        const progressPercent = document.getElementById('restoreProgressPercent');
+        const progressBytes = document.getElementById('restoreProgressBytes');
+        const restoreErrorAlert = document.getElementById('restoreErrorAlert');
+        const btnCancelOverlay = document.getElementById('btnCancelRestoreOverlay');
+
         let restoreModal = null;
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
             restoreModal = new bootstrap.Modal(restoreModalEl);
@@ -416,12 +455,118 @@
             });
         }
 
+        if (btnCancelOverlay) {
+            btnCancelOverlay.addEventListener('click', function () {
+                overlay.classList.add('d-none');
+                overlay.classList.remove('d-flex');
+            });
+        }
+
         function executeRestore() {
-            if (overlay) {
-                overlay.classList.remove('d-none');
-                overlay.classList.add('d-flex');
+            const file = document.getElementById('backupFileInput').files[0];
+            if (!file) {
+                alert('Pilih file backup terlebih dahulu!');
+                return;
             }
-            restoreForm.submit();
+
+            // Tampilkan Overlay & Reset State
+            overlay.classList.remove('d-none');
+            overlay.classList.add('d-flex');
+            restoreSpinner.classList.remove('d-none');
+            restoreErrorAlert.classList.add('d-none');
+            btnCancelOverlay.classList.add('d-none');
+            progressBarContainer.classList.remove('d-none');
+            progressDetails.classList.remove('d-none');
+            progressBar.style.width = '0%';
+            progressPercent.textContent = '0%';
+            progressBytes.textContent = '0 MB / ' + (file.size / 1048576).toFixed(2) + ' MB';
+            restoreTitle.textContent = 'Sedang Mengunggah File Backup...';
+            restoreSubtitle.textContent = 'Mengirim file backup ke server hosting. Harap jangan menutup halaman ini.';
+
+            const formData = new FormData(restoreForm);
+            const xhr = new XMLHttpRequest();
+
+            // Progress upload handler
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressPercent.textContent = percent + '%';
+                    progressBytes.textContent = (e.loaded / 1048576).toFixed(2) + ' MB / ' + (e.total / 1048576).toFixed(2) + ' MB';
+
+                    if (percent >= 100) {
+                        restoreTitle.textContent = 'Menyinkronkan Database Sistem...';
+                        restoreSubtitle.textContent = 'File terunggah (100%)! Server sedang mengekstrak dan memulihkan seluruh data...';
+                        progressBar.classList.add('bg-success');
+                        progressBar.classList.remove('bg-danger');
+                    }
+                }
+            };
+
+            // Selesai request
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    let res = null;
+                    try {
+                        res = JSON.parse(xhr.responseText);
+                    } catch(e) {}
+
+                    restoreSpinner.classList.add('d-none');
+                    progressBarContainer.classList.add('d-none');
+                    progressDetails.classList.add('d-none');
+                    restoreTitle.textContent = 'Pemulihan Berhasil!';
+                    restoreTitle.style.color = '#34d399';
+                    restoreSubtitle.textContent = res && res.message ? res.message : 'Data berhasil dipulihkan secara utuh ke sistem!';
+
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1800);
+                } else {
+                    handleErrorResponse();
+                }
+            };
+
+            // Error jaringan
+            xhr.onerror = function() {
+                handleErrorResponse('Koneksi terputus atau batas waktu (timeout) server hosting terlampaui saat proses upload.');
+            };
+
+            // Timeout
+            xhr.ontimeout = function() {
+                handleErrorResponse('Batas waktu server terlampaui (Timeout). Solusi: Gunakan file backup "Database Saja (.json)" yang sangat ringan (< 1MB) agar instan.');
+            };
+
+            function handleErrorResponse(customMsg) {
+                restoreSpinner.classList.add('d-none');
+                restoreTitle.textContent = 'Gagal Memulihkan Data';
+                restoreSubtitle.textContent = 'Terjadi kendala saat proses pengunggahan atau pemulihan data:';
+                progressBarContainer.classList.add('d-none');
+                progressDetails.classList.add('d-none');
+                btnCancelOverlay.classList.remove('d-none');
+
+                let msg = customMsg;
+                if (!msg) {
+                    try {
+                        const res = JSON.parse(xhr.responseText);
+                        msg = res.message || 'Terjadi kesalahan pada server hosting.';
+                    } catch(e) {
+                        if (xhr.status === 413) {
+                            msg = 'Ukuran file backup melebihi batas upload PHP server hosting (HTTP 413). Solusi: Silakan unduh dan upload file backup "Database Saja (.json)" yang berukuran sangat kecil.';
+                        } else if (xhr.status === 504 || xhr.status === 408) {
+                            msg = 'Server mengalami timeout saat memproses file. Solusi: Gunakan file backup "Database Saja (.json)" yang sangat ringan dan instan.';
+                        } else {
+                            msg = 'Gagal memproses file di server hosting (Kode Status: ' + xhr.status + '). Periksa izin folder uploads atau gunakan format .json.';
+                        }
+                    }
+                }
+
+                restoreErrorAlert.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> ' + msg;
+                restoreErrorAlert.classList.remove('d-none');
+            }
+
+            xhr.open('POST', restoreForm.action, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.send(formData);
         }
     });
 </script>

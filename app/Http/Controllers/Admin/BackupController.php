@@ -187,20 +187,37 @@ class BackupController extends Controller
     {
         @set_time_limit(600);
         @ini_set('memory_limit', '512M');
+        @ini_set('max_execution_time', '600');
 
-        $request->validate([
-            'backup_file' => 'required|file|max:262144', // up to 256MB
-        ], [
-            'backup_file.required' => 'Silakan pilih file backup yang ingin diupload.',
-            'backup_file.max'      => 'Ukuran file backup melebihi batas maksimal (256MB).',
-        ]);
+        $respondError = function ($msg, $status = 422) use ($request) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $msg], $status);
+            }
+            return back()->with('error', $msg);
+        };
+
+        if (!$request->hasFile('backup_file')) {
+            return $respondError('File backup tidak terdeteksi atau melebihi batas upload PHP server (post_max_size/upload_max_filesize). Solusi: Gunakan file backup format .json (Database Saja) yang berukuran sangat kecil.');
+        }
+
+        try {
+            $request->validate([
+                'backup_file' => 'required|file|max:262144', // up to 256MB
+            ], [
+                'backup_file.required' => 'Silakan pilih file backup yang ingin diupload.',
+                'backup_file.max'      => 'Ukuran file backup melebihi batas maksimal (256MB).',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            $firstError = collect($ve->errors())->flatten()->first() ?: 'Validasi file gagal.';
+            return $respondError($firstError);
+        }
 
         $file = $request->file('backup_file');
         $ext = strtolower($file->getClientOriginalExtension());
         $keepAdmin = $request->boolean('keep_current_admin', true);
 
         if (!in_array($ext, ['zip', 'json'])) {
-            return back()->with('error', 'Format file tidak didukung! Harap upload file backup dengan format .zip (Paket Lengkap) atau .json (Database).');
+            return $respondError('Format file tidak didukung! Harap upload file backup dengan format .zip (Paket Lengkap) atau .json (Database).');
         }
 
         $dbPayload = null;
@@ -209,13 +226,13 @@ class BackupController extends Controller
         // A. Handle ZIP File
         if ($ext === 'zip') {
             if (!class_exists('ZipArchive')) {
-                return back()->with('error', 'Server tidak mendukung ekstraksi ZIP (PHP ZipArchive tidak aktif).');
+                return $respondError('Server tidak mendukung ekstraksi ZIP (PHP ZipArchive tidak aktif). Silakan gunakan file backup format .json (Database Saja).');
             }
 
             $zip = new ZipArchive();
             $res = $zip->open($file->getRealPath());
             if ($res !== true) {
-                return back()->with('error', 'File ZIP rusak atau tidak dapat dibuka.');
+                return $respondError('File ZIP rusak atau tidak dapat dibuka oleh server.');
             }
 
             // Read database.json inside ZIP
@@ -231,13 +248,13 @@ class BackupController extends Controller
 
             if (!$jsonContent) {
                 $zip->close();
-                return back()->with('error', 'File backup tidak valid: File database.json tidak ditemukan di dalam paket ZIP.');
+                return $respondError('File backup tidak valid: File database.json tidak ditemukan di dalam paket ZIP.');
             }
 
             $dbPayload = json_decode($jsonContent, true);
             if (!is_array($dbPayload) || !isset($dbPayload['database'])) {
                 $zip->close();
-                return back()->with('error', 'Struktur data database di dalam file ZIP tidak sesuai atau rusak.');
+                return $respondError('Struktur data database di dalam file ZIP tidak sesuai atau rusak.');
             }
 
             // Extract uploads directory safely
@@ -295,7 +312,7 @@ class BackupController extends Controller
             $dbPayload = json_decode($jsonContent, true);
 
             if (!is_array($dbPayload) || !isset($dbPayload['database'])) {
-                return back()->with('error', 'Format file JSON tidak sesuai dengan skema backup Boutique Design Indonesia.');
+                return $respondError('Format file JSON tidak sesuai dengan skema backup Boutique Design Indonesia.');
             }
         }
 
@@ -361,7 +378,7 @@ class BackupController extends Controller
         } catch (\Throwable $e) {
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
             Log::error('Backup Restore Failed: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-            return back()->with('error', 'Gagal memulihkan database: ' . $e->getMessage());
+            return $respondError('Gagal memulihkan database: ' . $e->getMessage());
         }
 
         // Clear views, application cache, and route cache
@@ -384,7 +401,16 @@ class BackupController extends Controller
         if ($extractedFilesCount > 0) $summary[] = "{$extractedFilesCount} File Foto/Media";
 
         $summaryText = implode(', ', $summary);
+        $successMsg = "SELAMAT! Data backup berhasil dipulihkan secara utuh dan sinkron ke sistem! ({$summaryText}). Seluruh company profile kini sudah aktif dengan data yang dipulihkan.";
 
-        return back()->with('success', "SELAMAT! Data backup berhasil dipulihkan secara utuh dan sinkron ke sistem! ({$summaryText}). Seluruh company profile kini sudah aktif dengan data yang dipulihkan.");
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $successMsg,
+                'stats'   => $restoredStats,
+            ]);
+        }
+
+        return back()->with('success', $successMsg);
     }
 }
